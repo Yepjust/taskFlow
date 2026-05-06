@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progressive Kanban</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.2); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.3); 
+        }
+        .smooth-transition {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .task-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+        }
+        .ghost-task {
+            opacity: 0.5;
+            background: #e2e8f0;
+            border: 2px dashed #94a3b8;
+        }
+        
+        /* Dynamic Theme Variables will be applied via inline styles in React */
+    </style>
+</head>
+<body class="h-screen overflow-hidden selection:bg-indigo-100 selection:text-indigo-900 transition-colors duration-500 font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- Data & Constants ---
+
+        const THEMES = [
+            { id: 'classic', name: 'Classic Indigo', primary: '#4f46e5', bg: '#f3f4f6', surface: '#ffffff', text: '#1f2937' },
+            { id: 'sunset', name: 'Sunset Orange', primary: '#ea580c', bg: '#fff7ed', surface: '#ffffff', text: '#431407' },
+            { id: 'forest', name: 'Forest Green', primary: '#15803d', bg: '#f0fdf4', surface: '#ffffff', text: '#14532d' },
+            { id: 'ocean', name: 'Deep Ocean', primary: '#0284c7', bg: '#f0f9ff', surface: '#ffffff', text: '#0c4a6e' },
+            { id: 'berry', name: 'Berry Blast', primary: '#db2777', bg: '#fdf2f8', surface: '#ffffff', text: '#831843' },
+            { id: 'lavender', name: 'Soft Lavender', primary: '#7c3aed', bg: '#f5f3ff', surface: '#ffffff', text: '#4c1d95' },
+            { id: 'slate', name: 'Clean Slate', primary: '#475569', bg: '#f8fafc', surface: '#ffffff', text: '#0f172a' },
+            { id: 'coffee', name: 'Coffee Break', primary: '#78350f', bg: '#fffbeb', surface: '#ffffff', text: '#451a03' },
+            { id: 'teal', name: 'Teal Waters', primary: '#0d9488', bg: '#f0fdfa', surface: '#ffffff', text: '#134e4a' },
+            { id: 'rose', name: 'Dusty Rose', primary: '#e11d48', bg: '#fff1f2', surface: '#ffffff', text: '#881337' },
+            { id: 'midnight', name: 'Midnight', primary: '#818cf8', bg: '#1e1b4b', surface: '#312e81', text: '#e0e7ff' },
+            { id: 'lemon', name: 'Lemonade', primary: '#ca8a04', bg: '#fefce8', surface: '#ffffff', text: '#713f12' },
+            { id: 'sky', name: 'Sky Blue', primary: '#0ea5e9', bg: '#e0f2fe', surface: '#ffffff', text: '#075985' },
+            { id: 'emerald', name: 'Emerald City', primary: '#059669', bg: '#ecfdf5', surface: '#ffffff', text: '#064e3b' },
+            { id: 'royal', name: 'Royal Purple', primary: '#9333ea', bg: '#faf5ff', surface: '#ffffff', text: '#581c87' },
+            { id: 'cherry', name: 'Cherry Red', primary: '#dc2626', bg: '#fef2f2', surface: '#ffffff', text: '#7f1d1d' },
+            { id: 'cyan', name: 'Electric Cyan', primary: '#0891b2', bg: '#ecfeff', surface: '#ffffff', text: '#164e63' },
+            { id: 'stone', name: 'Warm Stone', primary: '#57534e', bg: '#fafaf9', surface: '#ffffff', text: '#1c1917' },
+            { id: 'lime', name: 'Fresh Lime', primary: '#65a30d', bg: '#f7fee7', surface: '#ffffff', text: '#365314' },
+            { id: 'fuschia', name: 'Neon Fuschia', primary: '#c026d3', bg: '#fdf4ff', surface: '#ffffff', text: '#701a75' }
+        ];
+
+        const TRANSLATIONS = {
+            en: {
+                appTitle: "Task Flow",
+                myBoards: "My Boards",
+                createBoard: "Create New Board",
+                welcomeTitle: "Select a Board",
+                welcomeSubtitle: "Select a board from the left to start tracking, or create a new one.",
+                addTask: "Add Task",
+                addColumn: "Add Column",
+                subtasks: "Subtasks / Checklist",
+                details: "Details",
+                dueDate: "Due Date",
+                delete: "Delete",
+                export: "Export Markdown",
+                import: "Import Markdown",
+                completion: "Completion",
+                theme: "Theme",
+                confirmDelete: "Are you sure? This cannot be undone.",
+                confirmAction: "Confirm Action",
+                newBoardName: "New Project",
+                newTaskName: "New Task",
+                newColumnName: "Status",
+                addDetailsPrompt: "Add extra details here...",
+                search: "Search boards...",
+                toggleLang: "Passer en Français",
+                noSubtasks: "No subtasks yet!",
+                importPlaceholder: "Paste Markdown content here...",
+                importAction: "Import",
+                cancel: "Cancel",
+                deleteTask: "Delete Task",
+                selectTheme: "Select a Theme"
+            },
+            fr: {
+                appTitle: "Flux de Tâches",
+                myBoards: "Mes Tableaux",
+                createBoard: "Créer un Tableau",
+                welcomeTitle: "Sélectionnez un Tableau",
+                welcomeSubtitle: "Choisissez un tableau à gauche pour commencer.",
+                addTask: "Ajouter Tâche",
+                addColumn: "Ajouter Colonne",
+                subtasks: "Sous-tâches / Liste",
+                details: "Détails",
+                dueDate: "Date d'échéance",
+                delete: "Supprimer",
+                export: "Exporter Markdown",
+                import: "Importer Markdown",
+                completion: "Complétion",
+                theme: "Thème",
+                confirmDelete: "Êtes-vous sûr ? Cette action est irréversible.",
+                confirmAction: "Confirmer l'action",
+                newBoardName: "Nouveau Projet",
+                newTaskName: "Nouvelle Tâche",
+                newColumnName: "Statut",
+                addDetailsPrompt: "Ajoutez des détails ici...",
+                search: "Rechercher...",
+                toggleLang: "Switch to English",
+                noSubtasks: "Aucune sous-tâche !",
+                importPlaceholder: "Collez le contenu Markdown ici...",
+                importAction: "Importer",
+                cancel: "Annuler",
+                deleteTask: "Supprimer la tâche",
+                selectTheme: "Choisir un thème"
+            }
+        };
+
+        const Icon = ({ name, size = 18, className = "" }) => {
+            useEffect(() => { lucide.createIcons(); }, [name]);
+            return <i data-lucide={name} width={size} height={size} className={className}></i>;
+        };
+
+        const generateId = () => Math.random().toString(36).substr(2, 9);
+        
+        const calculateProgress = (task) => {
+            if (!task.subtasks || task.subtasks.length === 0) return 0;
+            const completed = task.subtasks.filter(t => t.completed).length;
+            return Math.round((completed / task.subtasks.length) * 100);
+        };
+
+        // MD import parser (single-board MD format)
+        const parseMarkdownBoard = (md) => {
+            const lines = md.split(/\r?\n/);
+            let boardName = null;
+            let themeId = null;
+            const columns = [];
+            let currentCol = null;
+            let currentTask = null;
+            let currentSubtask = null;
+            const errors = [];
+
+            lines.forEach((line, idx) => {
+                if (/^#\s+/.test(line)) {
+                    boardName = line.replace(/^#\s+/, '').trim();
+                    return;
+                }
+                const mTheme = line.match(/^>\s*Theme:\s*(.+)$/i);
+                if (mTheme) { themeId = mTheme[1].trim(); return; }
+                if (/^##\s+/.test(line)) {
+                    const title = line.replace(/^##\s+/, '').trim();
+                    currentCol = { id: generateId(), title, tasks: [] };
+                    columns.push(currentCol);
+                    currentTask = null;
+                    currentSubtask = null;
+                    return;
+                }
+                if (/^###\s+/.test(line)) {
+                    const t = line.replace(/^###\s+/, '').trim();
+                    if (!currentCol) { errors.push(`Line ${idx+1}: Task without column`); }
+                    currentTask = { id: generateId(), title: t, subtasks: [], description: '' };
+                    currentCol?.tasks?.push(currentTask);
+                    currentSubtask = null;
+                    return;
+                }
+                const mDesc = line.match(/^>\s*description:\s*(.*)$/i);
+                if (mDesc) {
+                    const desc = mDesc[1].trim().replace(/\\n/g, '\n');
+                    if (currentTask) currentTask.description = desc;
+                    else errors.push(`Line ${idx+1}: Description without a task`);
+                    return;
+                }
+                const mSub = line.match(/^-\s*\[(.|x)\]\s*(.*)$/i);
+                if (mSub) {
+                    const completed = mSub[1] === 'x';
+                    const title = mSub[2].trim();
+                    if (!currentTask) { errors.push(`Line ${idx+1}: Subtask without a task`); }
+                    currentSubtask = { id: generateId(), title, completed, details: '', dueDate: '' };
+                    currentTask?.subtasks?.push(currentSubtask);
+                    return;
+                }
+                const mDetails = line.match(/^>\s*details:\s*(.*)$/i);
+                if (mDetails) {
+                    const det = mDetails[1].trim().replace(/\\n/g, '\n');
+                    if (currentSubtask) currentSubtask.details = det;
+                    else errors.push(`Line ${idx+1}: Details without a subtask`);
+                    return;
+                }
+                const mDue = line.match(/^>\s*due:\s*(.*)$/i);
+                if (mDue) {
+                    if (currentSubtask) currentSubtask.dueDate = mDue[1].trim();
+                    else errors.push(`Line ${idx+1}: Due without a subtask`);
+                    return;
+                }
+            });
+
+            if (!boardName) {
+                return { board: null, errors: ['Board name missing (expected "# BoardName")'] };
+            }
+            const mappedThemeId = (THEMES.find(t => t.id === themeId)) ? themeId : THEMES[0].id;
+
+            const board = {
+                id: generateId(),
+                name: boardName,
+                themeId: (THEMES.find(t => t.id === themeId) ? themeId : THEMES[0].id),
+                columns: columns
+            };
+            if (!board.columns || board.columns.length === 0) {
+                errors.push('Board has no columns');
+            }
+            return { board, errors };
+        };
+
+        // --- Components ---
+
+        const ConfirmModal = ({ isOpen, message, onConfirm, onCancel, t }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold mb-2 text-gray-800">{t.confirmAction}</h3>
+                        <p className="text-gray-600 mb-6">{message}</p>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={onCancel} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium">{t.cancel}</button>
+                            <button onClick={() => { onConfirm(); onCancel(); }} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium">{t.delete}</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ThemePicker = ({ currentThemeId, onSelect, onClose, t }) => {
+            return (
+                <div 
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onClick={onClose}
+                >
+                    <div 
+                        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="p-4 border-b flex justify-between items-center">
+                            <h3 className="font-bold text-lg">{t.selectTheme}</h3>
+                            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full"><Icon name="x" size={20}/></button>
+                        </div>
+                        <div className="p-6 overflow-y-auto grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {THEMES.map(theme => (
+                                <button
+                                    key={theme.id}
+                                    onClick={() => { onSelect(theme.id); onClose(); }}
+                                    className={`relative p-3 rounded-xl border-2 transition-all hover:scale-105 flex flex-col gap-2 ${currentThemeId === theme.id ? 'border-indigo-600 ring-2 ring-indigo-100' : 'border-transparent hover:shadow-lg'}`}
+                                    style={{ backgroundColor: theme.bg }}
+                                >
+                                    <div className="h-12 w-full rounded-lg shadow-sm" style={{ backgroundColor: theme.primary }}></div>
+                                    <span className="text-sm font-medium" style={{ color: theme.text }}>{theme.name}</span>
+                                    {currentThemeId === theme.id && (
+                                        <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow">
+                                            <Icon name="check" size={12} className="text-indigo-600" />
+                                        </div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Sidebar = ({ boards, activeBoardId, onSelect, onCreate, onDelete, isCollapsed, toggleCollapse, t, toggleLang }) => {
+            const [filter, setFilter] = useState('');
+            const filteredBoards = boards.filter(b => b.name.toLowerCase().includes(filter.toLowerCase()));
+
+            return (
+                <div className={`bg-white h-full border-r border-gray-200 flex flex-col smooth-transition relative z-30 ${isCollapsed ? 'w-16' : 'w-72'}`}>
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                        {!isCollapsed && <h1 className="font-bold text-xl text-indigo-600 tracking-tight flex items-center gap-2"><Icon name="kanban-square" className="text-indigo-600"/> TaskFlow</h1>}
+                        <button onClick={toggleCollapse} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
+                            <Icon name={isCollapsed ? "panel-left-open" : "panel-left-close"} />
+                        </button>
+                    </div>
+
+                    {!isCollapsed && (
+                        <div className="p-4 space-y-3">
+                            <button onClick={onCreate} className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg shadow-sm font-medium transition-colors">
+                                <Icon name="plus" size={16} /> {t.createBoard}
+                            </button>
+                            <div className="relative">
+                                <Icon name="search" size={16} className="absolute left-3 top-3 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder={t.search} 
+                                    className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                    value={filter}
+                                    onChange={(e) => setFilter(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                        {filteredBoards.map(board => {
+                            const theme = THEMES.find(th => th.id === board.themeId) || THEMES[0];
+                            return (
+                                <div 
+                                    key={board.id}
+                                    onClick={() => onSelect(board.id)}
+                                    className={`group flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${activeBoardId === board.id ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' : 'hover:bg-gray-50 text-gray-600 border border-transparent'}`}
+                                >
+                                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: theme.primary }}></div>
+                                    {!isCollapsed && (
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium truncate">{board.name}</div>
+                                        </div>
+                                    )}
+                                    {!isCollapsed && (
+                                        <button 
+                                            onClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                onDelete(board.id); 
+                                            }}
+                                            className="opacity-100 md:opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:bg-red-100 hover:text-red-600 rounded transition-all"
+                                        >
+                                            <Icon name="trash-2" size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="p-4 border-t border-gray-100">
+                         <button onClick={toggleLang} className="text-xs text-gray-500 hover:text-indigo-600 flex items-center gap-2">
+                            <Icon name="languages" size={14} />
+                            {!isCollapsed && t.toggleLang}
+                         </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const TaskModal = ({ task, onClose, onUpdate, onDelete, t, theme }) => {
+            const [activeSubtaskId, setActiveSubtaskId] = useState(null);
+            const [draggableSubtask, setDraggableSubtask] = useState(null); // Track which subtask can be dragged
+            const progress = calculateProgress(task);
+            
+            const handleAddSubtask = () => {
+                const newSubtask = { id: generateId(), title: "", completed: false, details: "", dueDate: "" };
+                onUpdate({ ...task, subtasks: [...(task.subtasks || []), newSubtask] });
+            };
+
+            const handleSubtaskKeyDown = (e, idx) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSubtask();
+                }
+            };
+
+            const toggleSubtask = (stId) => {
+                const updatedSubtasks = task.subtasks.map(st => 
+                    st.id === stId ? { ...st, completed: !st.completed } : st
+                );
+                onUpdate({ ...task, subtasks: updatedSubtasks });
+            };
+
+            const updateSubtask = (updatedSt) => {
+                const updatedSubtasks = task.subtasks.map(st => 
+                    st.id === updatedSt.id ? updatedSt : st
+                );
+                onUpdate({ ...task, subtasks: updatedSubtasks });
+            };
+
+            const deleteSubtask = (stId) => {
+                 const updatedSubtasks = task.subtasks.filter(st => st.id !== stId);
+                 onUpdate({ ...task, subtasks: updatedSubtasks });
+                 if (activeSubtaskId === stId) setActiveSubtaskId(null);
+            };
+
+            const handleSubtaskDragStart = (e, subtaskId) => {
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("subtaskId", subtaskId);
+            };
+
+            const handleSubtaskDrop = (e, targetIndex) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const subtaskId = e.dataTransfer.getData("subtaskId");
+                if (!subtaskId) return;
+
+                const subtasksCopy = [...task.subtasks];
+                const currentIndex = subtasksCopy.findIndex(s => s.id === subtaskId);
+                
+                if (currentIndex === -1 || currentIndex === targetIndex) return;
+
+                const [movedItem] = subtasksCopy.splice(currentIndex, 1);
+                subtasksCopy.splice(targetIndex, 0, movedItem);
+                
+                onUpdate({ ...task, subtasks: subtasksCopy });
+                setDraggableSubtask(null); // Reset draggable state
+            };
+
+            return (
+                <div 
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4"
+                    onClick={onClose}
+                >
+                    <div 
+                        className="bg-white w-full max-w-4xl h-[85vh] rounded-2xl shadow-2xl flex overflow-hidden relative animate-in zoom-in-95 duration-200"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex-1 flex flex-col min-w-0">
+                            {/* Header */}
+                            <div className="p-6 border-b border-gray-100 flex items-start justify-between bg-white z-10">
+                                <div className="flex-1 mr-8">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+                                        <span className="text-xs font-mono text-gray-400 uppercase">TASK-{task.id.substring(0,4)}</span>
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        value={task.title}
+                                        onChange={(e) => onUpdate({ ...task, title: e.target.value })}
+                                        className="text-2xl font-bold text-gray-800 w-full focus:outline-none focus:bg-gray-50 rounded p-1 -ml-1"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-3">
+                                     <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDelete();
+                                        }}
+                                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                                    >
+                                        <Icon name="trash-2" size={18} /> {t.deleteTask}
+                                    </button>
+                                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
+                                        <Icon name="x" size={24} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Body */}
+                            <div className="flex-1 overflow-y-auto p-8 bg-white">
+                                <div className="mb-8">
+                                    <div className="flex justify-between items-end mb-2">
+                                        <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                                            <Icon name="check-square" size={18} /> {t.completion}
+                                        </h3>
+                                        <span className="text-2xl font-bold" style={{color: theme.primary}}>{progress}%</span>
+                                    </div>
+                                    <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full transition-all duration-500 ease-out rounded-full"
+                                            style={{ width: `${progress}%`, backgroundColor: theme.primary }}
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                <div className="mb-8">
+                                     <h3 className="font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                                        <Icon name="file-text" size={18} /> {t.details}
+                                    </h3>
+                                    <textarea 
+                                        className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl text-gray-700 focus:ring-2 focus:ring-indigo-100 focus:outline-none min-h-[100px]"
+                                        placeholder={t.addDetailsPrompt}
+                                        value={task.description || ''}
+                                        onChange={(e) => onUpdate({ ...task, description: e.target.value })}
+                                    ></textarea>
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                                            <Icon name="list-todo" size={18} /> {t.subtasks}
+                                        </h3>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        {task.subtasks?.map((st, idx) => (
+                                            <div 
+                                                key={st.id} 
+                                                draggable={draggableSubtask === st.id}
+                                                onDragStart={(e) => handleSubtaskDragStart(e, st.id)}
+                                                onDragOver={(e) => e.preventDefault()}
+                                                onDrop={(e) => handleSubtaskDrop(e, idx)}
+                                                className={`group flex items-center gap-3 p-3 rounded-xl border transition-all ${st.completed ? 'bg-gray-50 border-gray-100' : 'bg-white border-gray-200 hover:border-indigo-200 hover:shadow-sm'}`}
+                                            >
+                                                <div 
+                                                    className="text-gray-300 group-hover:text-gray-400 drag-handle cursor-grab active:cursor-grabbing p-2 hover:bg-gray-100 rounded"
+                                                    onMouseEnter={() => setDraggableSubtask(st.id)}
+                                                    onMouseLeave={() => setDraggableSubtask(null)}
+                                                >
+                                                    <Icon name="grip-vertical" size={16} />
+                                                </div>
+                                                <button 
+                                                    onClick={() => toggleSubtask(st.id)}
+                                                    className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${st.completed ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300 text-transparent hover:border-green-400'}`}
+                                                >
+                                                    <Icon name="check" size={14} />
+                                                </button>
+                                                <input 
+                                                    type="text" 
+                                                    autoFocus={st.title === ""}
+                                                    value={st.title}
+                                                    onKeyDown={(e) => handleSubtaskKeyDown(e, idx)}
+                                                    onChange={(e) => updateSubtask({ ...st, title: e.target.value })}
+                                                    className={`flex-1 bg-transparent focus:outline-none cursor-text ${st.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}
+                                                    placeholder="Type a subtask..."
+                                                />
+                                                <div className="flex items-center gap-2">
+                                                    {st.dueDate && (
+                                                        <div className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
+                                                            <Icon name="calendar" size={12}/> {st.dueDate}
+                                                        </div>
+                                                    )}
+                                                    {st.details && st.details.trim().length > 0 && (
+                                                        <div className="text-amber-400" title="Has Details">
+                                                            <Icon name="star" size={14} fill="currentColor" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                                                     <button onClick={() => deleteSubtask(st.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                                                        <Icon name="trash-2" size={16} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setActiveSubtaskId(activeSubtaskId === st.id ? null : st.id)}
+                                                        className={`p-2 rounded-lg transition-colors ${activeSubtaskId === st.id ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+                                                    >
+                                                        <Icon name="maximize-2" size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <button 
+                                            onClick={handleAddSubtask}
+                                            className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                                        >
+                                            <Icon name="plus" size={16} /> {t.subtasks}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Subtask Sidebar Overlay */}
+                        {activeSubtaskId && (() => {
+                            const subtask = task.subtasks.find(s => s.id === activeSubtaskId);
+                            if (!subtask) return null;
+                            return (
+                                <div className="absolute top-0 right-0 h-full w-80 bg-white shadow-2xl border-l border-gray-200 z-[60] flex flex-col animate-in slide-in-from-right duration-200">
+                                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                                        <h3 className="font-semibold text-gray-700 flex items-center gap-2">
+                                            <Icon name="align-left" size={18} /> {t.details}
+                                        </h3>
+                                        <button onClick={() => setActiveSubtaskId(null)} className="p-1 hover:bg-gray-200 rounded text-gray-500">
+                                            <Icon name="x" size={18} />
+                                        </button>
+                                    </div>
+                                    <div className="p-6 flex-1 overflow-y-auto space-y-6">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 truncate">{subtask.title}</label>
+                                            <textarea 
+                                                className="w-full h-32 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none resize-none"
+                                                placeholder={t.addDetailsPrompt}
+                                                value={subtask.details || ''}
+                                                onChange={(e) => updateSubtask({ ...subtask, details: e.target.value })}
+                                            ></textarea>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                                <Icon name="calendar" size={14} /> {t.dueDate}
+                                            </label>
+                                            <input 
+                                                type="date" 
+                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm"
+                                                value={subtask.dueDate || ''}
+                                                onChange={(e) => updateSubtask({ ...subtask, dueDate: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                    </div>
+                </div>
+            );
+        };
+
+        const KanbanColumn = ({ column, tasks, onDropTask, onUpdateColumn, onDeleteColumn, onTaskClick, onAddTask, t, theme, onReorderTask }) => {
+            
+            const handleColumnDrop = (e) => {
+                e.preventDefault();
+                const taskId = e.dataTransfer.getData("taskId");
+                if (taskId) {
+                    onDropTask(taskId, column.id, null); 
+                }
+            };
+
+            const handleDragOver = (e) => e.preventDefault();
+
+            const handleTaskDrop = (e, targetTaskId, targetIndex) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const taskId = e.dataTransfer.getData("taskId");
+                if (taskId === targetTaskId) return;
+                onDropTask(taskId, column.id, targetIndex);
+            };
+
+            return (
+                <div 
+                    className="flex-shrink-0 w-80 flex flex-col h-full max-h-full rounded-xl transition-colors"
+                    onDragOver={handleDragOver} 
+                    onDrop={handleColumnDrop}
+                >
+                    <div className="flex items-center justify-between mb-3 px-2 group">
+                        <div className="flex-1 flex items-center bg-white/50 rounded-lg px-2 py-1 mr-2 border border-transparent focus-within:border-indigo-300 focus-within:bg-white transition-all">
+                            <input 
+                                className="bg-transparent font-bold text-gray-700 focus:outline-none w-full"
+                                value={column.title}
+                                onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                                onChange={(e) => onUpdateColumn({ ...column, title: e.target.value })}
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold bg-white/60 text-gray-600 px-2 py-0.5 rounded-full shadow-sm">{tasks.length}</span>
+                            <button 
+                                onClick={(e) => { 
+                                    e.stopPropagation();
+                                    onDeleteColumn(column.id); 
+                                }} 
+                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded opacity-0 group-hover:opacity-100 transition-all"
+                            >
+                                <Icon name="trash" size={14} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-3 pb-4">
+                        {tasks.map((task, index) => {
+                            const progress = calculateProgress(task);
+                            return (
+                                <div 
+                                    key={task.id}
+                                    draggable
+                                    onDragStart={(e) => {
+                                        e.dataTransfer.setData("taskId", task.id);
+                                        e.dataTransfer.setData("sourceColId", column.id);
+                                        e.target.style.opacity = '0.5';
+                                    }}
+                                    onDragEnd={(e) => {
+                                        e.target.style.opacity = '1';
+                                    }}
+                                    onDrop={(e) => handleTaskDrop(e, task.id, index)}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onClick={() => onTaskClick(task)}
+                                    className="task-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-indigo-300 transition-all group relative overflow-hidden"
+                                >
+                                    <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: theme.primary }}></div>
+                                    <div className="pl-2">
+                                        <h4 className="font-medium text-gray-800 line-clamp-2 leading-tight mb-3">{task.title}</h4>
+                                        <div className="flex items-center justify-between text-xs text-gray-400">
+                                            <div className="flex items-center gap-1.5">
+                                                <Icon name={progress === 100 ? "check-circle" : "circle"} size={14} className={progress === 100 ? "text-green-500" : ""} />
+                                                <span>{task.subtasks?.length || 0}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono">{progress}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        <button 
+                            onClick={() => onAddTask(column.id)} 
+                            className="w-full py-2 border-2 border-dashed border-gray-300/50 rounded-xl text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-white/50 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                        >
+                            <Icon name="plus" size={16} /> {t.addTask}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [boards, setBoards] = useState([]);
+            const [activeBoardId, setActiveBoardId] = useState(null);
+            const [activeTask, setActiveTask] = useState(null);
+            const [lang, setLang] = useState('en');
+            const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+            const [showImportModal, setShowImportModal] = useState(false);
+            const [showThemeModal, setShowThemeModal] = useState(false);
+            const [importText, setImportText] = useState('');
+            const [confirmation, setConfirmation] = useState({ isOpen: false, message: '', onConfirm: null });
+            const [importMode, setImportMode] = useState('paste');
+            const [lastImportSnapshot, setLastImportSnapshot] = useState(null);
+            const [selectedFileName, setSelectedFileName] = useState('');
+        const undoImport = () => {
+            if (!lastImportSnapshot) return;
+            setBoards(lastImportSnapshot.boards);
+            setActiveBoardId(lastImportSnapshot.activeBoardId);
+            setLastImportSnapshot(null);
+        };
+
+        // Auto-dismiss the import notification after 7 seconds
+        useEffect(() => {
+            if (!lastImportSnapshot) return;
+            const timer = setTimeout(() => {
+                setLastImportSnapshot(null);
+            }, 7000);
+            return () => clearTimeout(timer);
+        }, [lastImportSnapshot]);
+
+            const t = TRANSLATIONS[lang];
+
+            useEffect(() => {
+                const savedData = localStorage.getItem('taskflow_data_v3');
+                if (savedData) {
+                    const parsed = JSON.parse(savedData);
+                    setBoards(parsed.boards || []);
+                    setLang(parsed.settings?.lang || 'en');
+                } else {
+                    const demoBoard = {
+                        id: generateId(),
+                        name: "Welcome Project",
+                        themeId: 'classic',
+                        columns: [
+                            { id: "c1", title: "To Do", tasks: [] },
+                            { id: "c2", title: "In Progress", tasks: [] }
+                        ]
+                    };
+                    setBoards([demoBoard]);
+                    setActiveBoardId(demoBoard.id);
+                }
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('taskflow_data_v3', JSON.stringify({ boards, settings: { lang } }));
+            }, [boards, lang]);
+
+            const activeBoard = useMemo(() => boards.find(b => b.id === activeBoardId), [boards, activeBoardId]);
+            const currentTheme = useMemo(() => activeBoard ? (THEMES.find(t => t.id === activeBoard.themeId) || THEMES[0]) : THEMES[0], [activeBoard]);
+
+            const requestConfirm = (message, action) => {
+                setConfirmation({ isOpen: true, message, onConfirm: action });
+            };
+
+            const closeConfirm = () => {
+                setConfirmation({ ...confirmation, isOpen: false });
+            };
+
+            const createBoard = () => {
+                const newBoard = {
+                    id: generateId(),
+                    name: t.newBoardName,
+                    themeId: THEMES[Math.floor(Math.random() * THEMES.length)].id,
+                    columns: [
+                        { id: generateId(), title: "To Do", tasks: [] },
+                        { id: generateId(), title: "Doing", tasks: [] }
+                    ]
+                };
+                setBoards([...boards, newBoard]);
+                setActiveBoardId(newBoard.id);
+            };
+
+            const updateBoard = (updatedBoard) => {
+                setBoards(prev => prev.map(b => b.id === updatedBoard.id ? updatedBoard : b));
+            };
+
+            const deleteBoard = (id) => {
+                requestConfirm(t.confirmDelete, () => {
+                    setBoards(prev => prev.filter(b => b.id !== id));
+                    if (activeBoardId === id) setActiveBoardId(null);
+                });
+            };
+
+            const handleAddTask = (columnId) => {
+                if (!activeBoard) return;
+                const newTask = { id: generateId(), title: t.newTaskName, description: "", subtasks: [] };
+                const newColumns = activeBoard.columns.map(col => col.id === columnId ? { ...col, tasks: [...col.tasks, newTask] } : col);
+                updateBoard({ ...activeBoard, columns: newColumns });
+            };
+
+            const handleDropTask = (taskId, targetColumnId, targetIndex) => {
+                if (!activeBoard) return;
+                let taskToMove = null;
+                const boardCopy = JSON.parse(JSON.stringify(activeBoard));
+                boardCopy.columns.forEach(col => {
+                    const taskIdx = col.tasks.findIndex(t => t.id === taskId);
+                    if (taskIdx > -1) {
+                        taskToMove = col.tasks[taskIdx];
+                        col.tasks.splice(taskIdx, 1);
+                    }
+                });
+                if (!taskToMove) return;
+                const targetCol = boardCopy.columns.find(c => c.id === targetColumnId);
+                if (targetCol) {
+                    if (targetIndex !== null && targetIndex >= 0) {
+                        targetCol.tasks.splice(targetIndex, 0, taskToMove);
+                    } else {
+                        targetCol.tasks.push(taskToMove);
+                    }
+                }
+                updateBoard(boardCopy);
+            };
+
+            const handleUpdateTask = (updatedTask) => {
+                const newColumns = activeBoard.columns.map(col => ({
+                    ...col,
+                    tasks: col.tasks.map(t => t.id === updatedTask.id ? updatedTask : t)
+                }));
+                updateBoard({ ...activeBoard, columns: newColumns });
+                setActiveTask(updatedTask);
+            };
+
+            const handleDeleteTask = () => {
+                 if (!activeTask) return;
+                 requestConfirm(t.confirmDelete, () => {
+                    const newColumns = activeBoard.columns.map(col => ({
+                        ...col,
+                        tasks: col.tasks.filter(t => t.id !== activeTask.id)
+                    }));
+                    updateBoard({ ...activeBoard, columns: newColumns });
+                    setActiveTask(null);
+                 });
+            };
+
+            const handleDeleteColumn = (colId) => {
+                requestConfirm(t.confirmDelete, () => {
+                     updateBoard({...activeBoard, columns: activeBoard.columns.filter(c => c.id !== colId)});
+                });
+            };
+
+            const handleExport = () => {
+                if (!activeBoard) return;
+                let md = `# ${activeBoard.name}\n`;
+                md += `> Theme: ${activeBoard.themeId}\n\n`;
+                
+                activeBoard.columns.forEach(col => {
+                    md += `## ${col.title}\n`;
+                    col.tasks.forEach(task => {
+                        md += `### ${task.title}\n`;
+                        if (task.description) md += `> description: ${task.description.replace(/\n/g, '\\n')}\n`;
+                        
+                        task.subtasks?.forEach(st => {
+                            md += `- [${st.completed ? 'x' : ' '}] ${st.title}\n`;
+                            if (st.details) md += `  > details: ${st.details.replace(/\n/g, '\\n')}\n`;
+                            if (st.dueDate) md += `  > due: ${st.dueDate}\n`;
+                        });
+                        md += `\n`;
+                    });
+                });
+                const blob = new Blob([md], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${activeBoard.name}_board.md`;
+                a.click();
+            };
+
+            const handleImport = () => {
+                // Import from Markdown content (paste or file loaded content)
+                const content = importText;
+                if (!content || content.trim().length === 0) return;
+                const { board, errors } = parseMarkdownBoard(content);
+                if (errors && errors.length > 0) {
+                    alert('Import failed:\n' + errors.join('\n'));
+                    return;
+                }
+                if (!board) return;
+                const prevBoards = JSON.parse(JSON.stringify(boards));
+                const prevActive = activeBoardId;
+                setBoards([...boards, board]);
+                setActiveBoardId(board.id);
+                setShowImportModal(false);
+                setImportText('');
+                setLastImportSnapshot({ boards: prevBoards, activeBoardId: prevActive });
+            };
+
+            return (
+                <div 
+                    className="flex h-screen w-full transition-colors duration-500 font-sans text-gray-800"
+                    style={{ backgroundColor: activeBoard ? currentTheme.bg : '#f9fafb' }}
+                >
+                    <Sidebar 
+                        boards={boards} activeBoardId={activeBoardId} 
+                        onSelect={setActiveBoardId} onCreate={createBoard} onDelete={deleteBoard}
+                        isCollapsed={sidebarCollapsed} toggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+                        t={t} toggleLang={() => setLang(lang === 'en' ? 'fr' : 'en')}
+                    />
+
+                    <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+                        {lastImportSnapshot && (
+                            <div className="w-full bg-yellow-100 text-yellow-900 border-b border-yellow-200 p-2 text-sm flex items-center justify-between z-40" role="status">
+                                <span>Board imported. You can undo the import to revert.</span>
+                                <button className="px-3 py-1 rounded bg-yellow-200 hover:bg-yellow-300" onClick={undoImport}>Undo</button>
+                            </div>
+                        )}
+                        {activeBoard ? (
+                            <>
+                                <div className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200/50 flex items-center justify-between px-6 shrink-0 z-20">
+                                    <div className="flex items-center gap-4">
+                                        <input 
+                                            value={activeBoard.name}
+                                            onChange={(e) => updateBoard({ ...activeBoard, name: e.target.value })}
+                                            className="text-xl font-bold bg-transparent focus:bg-white rounded px-2 -ml-2 focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
+                                            style={{ color: currentTheme.text }}
+                                        />
+                                        <button 
+                                            onClick={() => setShowThemeModal(true)}
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-transform active:scale-95 hover:shadow-sm"
+                                            style={{ backgroundColor: currentTheme.primary + '20', color: currentTheme.primary }}
+                                        >
+                                            <Icon name="palette" size={14} /> {t.theme}
+                                        </button>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setShowImportModal(true)} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg" title={t.import}><Icon name="upload" size={18} /></button>
+                                        <button onClick={handleExport} className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg" title={t.export}><Icon name="download" size={18} /></button>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
+                                    <div className="flex h-full gap-6 items-start">
+                                        {activeBoard.columns.map(col => (
+                                            <KanbanColumn 
+                                                key={col.id} 
+                                                column={col} 
+                                                tasks={col.tasks} 
+                                                onDropTask={handleDropTask}
+                                                onUpdateColumn={(upCol) => updateBoard({...activeBoard, columns: activeBoard.columns.map(c => c.id === upCol.id ? upCol : c)})}
+                                                onDeleteColumn={handleDeleteColumn}
+                                                onTaskClick={setActiveTask} 
+                                                onAddTask={handleAddTask} 
+                                                t={t}
+                                                theme={currentTheme}
+                                            />
+                                        ))}
+                                        
+                                        <button 
+                                            onClick={() => updateBoard({...activeBoard, columns: [...activeBoard.columns, {id: generateId(), title: t.newColumnName, tasks: []}]})}
+                                            className="flex-shrink-0 w-16 h-full max-h-[80vh] rounded-2xl border-2 border-dashed border-gray-300 hover:border-indigo-400 hover:bg-white/50 transition-all flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-indigo-600 group"
+                                            title={t.addColumn}
+                                        >
+                                            <div className="p-3 rounded-full bg-gray-100 group-hover:bg-indigo-100 transition-colors">
+                                                <Icon name="plus" size={24} />
+                                            </div>
+                                            <span className="text-xs font-medium vertical-rl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pt-2">Add Column</span>
+                                        </button>
+                                        <div className="w-4 flex-shrink-0"></div>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 text-center animate-in fade-in duration-500">
+                                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                                    <Icon name="layout" size={48} className="opacity-40" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-700 mb-2">{t.welcomeTitle}</h2>
+                                <p className="max-w-md mx-auto">{t.welcomeSubtitle}</p>
+                            </div>
+                        )}
+
+                        {activeTask && (
+                            <TaskModal 
+                                task={activeTask} onClose={() => setActiveTask(null)} onUpdate={handleUpdateTask}
+                                onDelete={handleDeleteTask} t={t} theme={currentTheme}
+                            />
+                        )}
+
+                        {showThemeModal && (
+                            <ThemePicker 
+                                currentThemeId={activeBoard.themeId}
+                                onSelect={(id) => updateBoard({...activeBoard, themeId: id})}
+                                onClose={() => setShowThemeModal(false)}
+                                t={t}
+                            />
+                        )}
+
+                        {showImportModal && (
+                            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowImportModal(false)}>
+                                <div className="bg-white rounded-xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
+                                    <div className="mb-2 flex gap-2">
+                                        <button className={`px-3 py-1 rounded ${importMode==='paste' ? 'bg-indigo-100' : 'bg-white'}`} onClick={() => setImportMode('paste')}>Paste Markdown</button>
+                                        <button className={`px-3 py-1 rounded ${importMode==='file' ? 'bg-indigo-100' : 'bg-white'}`} onClick={() => setImportMode('file')}>MD File</button>
+                                    </div>
+                                    {importMode === 'paste' && (
+                                        <textarea className="w-full h-48 border rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={t.importPlaceholder} value={importText} onChange={e => setImportText(e.target.value)}></textarea>
+                                    )}
+                                    {importMode === 'file' && (
+                                        <div className="flex flex-col gap-2">
+                                            <input type="file" accept=".md,.markdown" onChange={e => {
+                                                const f = e.target.files?.[0];
+                                                if (f) {
+                                                    setSelectedFileName(f.name);
+                                                    const reader = new FileReader();
+                                                    reader.onload = ev => {
+                                                        const content = ev.target?.result ?? '';
+                                                        setImportText(content);
+                                                    };
+                                                    reader.readAsText(f);
+                                                }
+                                            }} />
+                                            {selectedFileName && <div className="text-sm text-gray-500">Selected: {selectedFileName}</div>}
+                                        </div>
+                                    )}
+                                    <div className="flex justify-end gap-2 mt-4">
+                                        <button onClick={() => setShowImportModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">{t.cancel}</button>
+                                        <button onClick={handleImport} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">{t.importAction}</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <ConfirmModal 
+                            isOpen={confirmation.isOpen}
+                            message={confirmation.message}
+                            onConfirm={confirmation.onConfirm}
+                            onCancel={closeConfirm}
+                            t={t}
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

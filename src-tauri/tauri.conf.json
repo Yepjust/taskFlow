@@ -22,7 +22,6 @@
         "icons/icon.ico"
       ],
       "identifier": "com.taskflow.app",
-      "name": "TaskFlow",
       "targets": ["msi", "nsis"]
     },
     "security": {

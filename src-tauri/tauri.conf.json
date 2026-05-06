@@ -1,0 +1,43 @@
+{
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devPath": "../",
+    "distDir": "../"
+  },
+  "package": {
+    "productName": "TaskFlow",
+    "version": "1.0.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false
+    },
+    "bundle": {
+      "active": true,
+      "icon": [
+        "icons/icon-32.png",
+        "icons/icon-128.png",
+        "icons/icon-192.png",
+        "icons/icon.ico"
+      ],
+      "identifier": "com.taskflow.app",
+      "name": "TaskFlow",
+      "targets": ["msi", "nsis"]
+    },
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "fullscreen": false,
+        "height": 800,
+        "resizable": true,
+        "title": "TaskFlow",
+        "width": 1280,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ]
+  }
+}

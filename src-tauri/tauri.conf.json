@@ -35,7 +35,8 @@
         "title": "TaskFlow",
         "width": 1280,
         "minWidth": 800,
-        "minHeight": 600
+        "minHeight": 600,
+        "url": "index.html"
       }
     ]
   }

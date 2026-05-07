@@ -283,8 +283,8 @@ const THEMES=[
 ];
 
 const T={
-  en:{appTitle:'Task Flow',myBoards:'My Boards',createBoard:'Create New Board',welcomeTitle:'Select a Board',welcomeSubtitle:'Select a board from the left to start tracking, or create a new one.',addTask:'Add Task',addColumn:'Add Column',subtasks:'Subtasks / Checklist',details:'Details',dueDate:'Due Date',delete:'Delete',export:'Export Markdown',import:'Import Markdown',completion:'Completion',theme:'Theme',confirmDelete:'Are you sure? This cannot be undone.',confirmAction:'Confirm Action',newBoardName:'New Project',newTaskName:'New Task',newColumnName:'Status',addDetailsPrompt:'Add extra details here...',search:'Search boards...',toggleLang:'Passer en Français',noSubtasks:'No subtasks yet!',importPlaceholder:'Paste Markdown content here...',importAction:'Import',cancel:'Cancel',deleteTask:'Delete Task',selectTheme:'Select a Theme',dueToday:'Subtasks due today'},
-  fr:{appTitle:'Flux de Tâches',myBoards:'Mes Tableaux',createBoard:'Créer un Tableau',welcomeTitle:'Sélectionnez un Tableau',welcomeSubtitle:'Choisissez un tableau à gauche pour commencer.',addTask:'Ajouter Tâche',addColumn:'Ajouter Colonne',subtasks:'Sous-tâches / Liste',details:'Détails',dueDate:"Date d'échéance",delete:'Supprimer',export:'Exporter Markdown',import:'Importer Markdown',completion:'Complétion',theme:'Thème',confirmDelete:'Êtes-vous sûr ? Cette action est irréversible.',confirmAction:"Confirmer l'action",newBoardName:'Nouveau Projet',newTaskName:'Nouvelle Tâche',newColumnName:'Statut',addDetailsPrompt:'Ajoutez des détails ici...',search:'Rechercher...',toggleLang:'Switch to English',noSubtasks:'Aucune sous-tâche !',importPlaceholder:'Collez le contenu Markdown ici...',importAction:'Importer',cancel:'Annuler',deleteTask:'Supprimer la tâche',selectTheme:'Choisir un thème',dueToday:'Sous-tâches dues aujourd\'hui'},
+  en:{appTitle:'Task Flow',myBoards:'My Boards',createBoard:'Create New Board',welcomeTitle:'Select a Board',welcomeSubtitle:'Select a board from the left to start tracking, or create a new one.',addTask:'Add Task',addColumn:'Add Column',subtasks:'Subtasks / Checklist',details:'Details',dueDate:'Due Date',delete:'Delete',export:'Export Markdown',import:'Import Markdown',completion:'Completion',theme:'Theme',confirmDelete:'Are you sure? This cannot be undone.',confirmAction:'Confirm Action',newBoardName:'New Project',newTaskName:'New Task',newColumnName:'Status',addDetailsPrompt:'Add extra details here...',search:'Search boards...',toggleLang:'Passer en Français',noSubtasks:'No subtasks yet!',importPlaceholder:'Paste Markdown content here...',importAction:'Import',cancel:'Cancel',deleteTask:'Delete Task',selectTheme:'Select a Theme',dueSoon:'Subtasks due within 48 hours'},
+  fr:{appTitle:'Flux de Tâches',myBoards:'Mes Tableaux',createBoard:'Créer un Tableau',welcomeTitle:'Sélectionnez un Tableau',welcomeSubtitle:'Choisissez un tableau à gauche pour commencer.',addTask:'Ajouter Tâche',addColumn:'Ajouter Colonne',subtasks:'Sous-tâches / Liste',details:'Détails',dueDate:"Date d'échéance",delete:'Supprimer',export:'Exporter Markdown',import:'Importer Markdown',completion:'Complétion',theme:'Thème',confirmDelete:'Êtes-vous sûr ? Cette action est irréversible.',confirmAction:"Confirmer l'action",newBoardName:'Nouveau Projet',newTaskName:'Nouvelle Tâche',newColumnName:'Statut',addDetailsPrompt:'Ajoutez des détails ici...',search:'Rechercher...',toggleLang:'Switch to English',noSubtasks:'Aucune sous-tâche !',importPlaceholder:'Collez le contenu Markdown ici...',importAction:'Importer',cancel:'Annuler',deleteTask:'Supprimer la tâche',selectTheme:'Choisir un thème',dueSoon:'Sous-tâches dues dans les 48 heures'},
 };
 
 const genId=()=>Math.random().toString(36).substr(2,9);
@@ -610,15 +610,16 @@ function DueNotification({items,onDismiss,theme}){
   return h('div',{className:'due-notification'},
     h('h4',null, h(Icon,{name:'bell',size:16,style:{color:'#92400e'}}), t.dueToday),
     h('ul',null,
-      items.map((item, idx) =>
-        h('li',{key:idx},
-          h('span',{style:{fontWeight:600}}, item.subtaskTitle),
-          ' — ',
-          item.taskTitle,
-          ' (', item.boardName, ')'
-        )
-      )
-    ),
+  items.map((item, idx) =>
+    h('li',{key:idx},
+      h('span',{style:{fontWeight:600}}, item.subtaskTitle),
+      ' — ',
+      item.taskTitle,
+      ' (', item.boardName, ')',
+      h('span',{style:{marginLeft:8,fontSize:12,color:'#b45309'}}, item.remaining)
+    )
+  )
+),
     h('button',{onClick:onDismiss}, 'OK')
   );
 }
@@ -673,24 +674,42 @@ function App(){
 
   // Compute due subtasks for the active board
   const dueTodayItems = useMemo(() => {
-    if (!activeBoard) return [];
-    const today = new Date().toISOString().slice(0,10);
-    const items = [];
-    activeBoard.columns.forEach(col => {
-      col.tasks.forEach(task => {
-        (task.subtasks||[]).forEach(st => {
-          if (st.dueDate && st.dueDate === today && !st.completed) {
-            items.push({
-              subtaskTitle: st.title || '(untitled)',
-              taskTitle: task.title,
-              boardName: activeBoard.name
-            });
+  if (!activeBoard) return [];
+  const now = Date.now();
+  const in48h = now + 48 * 60 * 60 * 1000; // exactly 48 hours from now
+  const items = [];
+  activeBoard.columns.forEach(col => {
+    col.tasks.forEach(task => {
+      (task.subtasks||[]).forEach(st => {
+        if (st.dueDate && !st.completed) {
+          const due = new Date(st.dueDate);
+          if (!isNaN(due.getTime())) {
+            const dueTime = due.getTime();
+            if (dueTime >= now && dueTime <= in48h) {
+              // compute a human-readable remaining time
+              const diffMs = dueTime - now;
+              const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+              let remaining;
+              if (diffHours <= 1) remaining = 'in 1 hour';
+              else if (diffHours < 24) remaining = `in ${diffHours} hours`;
+              else {
+                const days = Math.floor(diffHours / 24);
+                remaining = `in ${days} day${days > 1 ? 's' : ''}`;
+              }
+              items.push({
+                subtaskTitle: st.title || '(untitled)',
+                taskTitle: task.title,
+                boardName: activeBoard.name,
+                remaining
+              });
+            }
           }
-        });
+        }
       });
     });
-    return items;
-  }, [activeBoard]);
+  });
+  return items;
+}, [activeBoard]);
 
   // Show notification when board changes and due items exist
   useEffect(() => {

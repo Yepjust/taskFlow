@@ -28,16 +28,16 @@
       "csp": null
     },
     "windows": [
-      {
-        "fullscreen": false,
-        "height": 800,
-        "resizable": true,
-        "title": "TaskFlow",
-        "width": 1280,
-        "minWidth": 800,
-        "minHeight": 600,
-        "url": "index.html"
-      }
+  {
+    "fullscreen": false,
+    "height": 800,
+    "resizable": true,
+    "title": "TaskFlow",
+    "width": 1280,
+    "minWidth": 800,
+    "minHeight": 600,
+    "url": "index.html",
+    "fileDropEnabled": false      }
     ]
   }
 }

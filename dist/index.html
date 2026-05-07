@@ -63,7 +63,7 @@ textarea{resize:vertical}
 /* Board */
 .board-area{flex:1;overflow-x:auto;overflow-y:hidden;padding:20px}
 .columns-wrap{display:flex;gap:20px;height:100%;align-items:flex-start}
-.column{flex-shrink:0;width:288px;display:flex;flex-direction:column;height:100%;max-height:100%;border-radius:12px}
+.column{flex-shrink:0;width:288px;display:flex;flex-direction:column;height:100%;max-height:100%;border-radius:12px;min-height:0}
 .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 6px}
 .col-title-wrap{flex:1;display:flex;align-items:center;background:rgba(255,255,255,.5);border-radius:8px;padding:5px 8px;margin-right:8px;border:1px solid transparent;transition:all .15s}
 .col-title-wrap:focus-within{border-color:#a5b4fc;background:#fff}
@@ -72,15 +72,15 @@ textarea{resize:vertical}
 .btn-del-col{padding:4px;border-radius:5px;color:#9ca3af;opacity:0;transition:all .15s}
 .column:hover .btn-del-col{opacity:1}
 .btn-del-col:hover{background:#fee2e2;color:#dc2626}
-.tasks-list{flex:1;overflow-y:auto;padding-right:4px;display:flex;flex-direction:column;gap:10px;padding-bottom:12px}
-.task-card{background:#fff;padding:14px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid #f3f4f6;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.tasks-list{flex:1 1 0;min-height:0;overflow-y:auto;padding-right:4px;display:flex;flex-direction:column;gap:10px;padding-bottom:12px}
+.task-card{background:#fff;padding:14px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid #f3f4f6;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;min-height:72px;flex-shrink:0}
 .task-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.1);border-color:#c7d2fe;transform:translateY(-1px)}
 .task-accent{position:absolute;top:0;left:0;width:3px;height:100%}
 .task-content{padding-left:8px}
 .task-title{font-weight:500;color:#1f2937;line-height:1.4;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .task-meta{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#9ca3af}
 .task-subtask-count{display:flex;align-items:center;gap:4px}
-.btn-add-task{width:100%;padding:8px;border:2px dashed rgba(156,163,175,.4);border-radius:10px;color:#6b7280;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:500}
+.btn-add-task{width:100%;padding:8px;border:2px dashed rgba(156,163,175,.4);border-radius:10px;color:#6b7280;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:500;flex-shrink:0}
 .btn-add-task:hover{border-color:#818cf8;color:#4f46e5;background:rgba(238,242,255,.5)}
 .btn-add-col{flex-shrink:0;width:56px;height:100%;max-height:75vh;border-radius:16px;border:2px dashed #d1d5db;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#9ca3af;transition:all .2s}
 .btn-add-col:hover{border-color:#818cf8;color:#4f46e5;background:rgba(255,255,255,.5)}
@@ -193,6 +193,16 @@ textarea{resize:vertical}
 .info-dialog button{margin-top:16px;padding:6px 16px;background:#4f46e5;color:#fff;border-radius:6px;font-weight:500;transition:background .15s}
 .info-dialog button:hover{background:#4338ca}
 
+/* Due notification popup */
+.due-notification{position:fixed;bottom:24px;right:24px;z-index:50;background:#fff;border:1px solid #fde68a;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);padding:16px 20px;max-width:320px;animation:slideUp .2s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.due-notification h4{font-size:14px;font-weight:600;color:#92400e;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.due-notification ul{list-style:none;padding:0;margin:0 0 12px;font-size:13px;color:#374151}
+.due-notification li{padding:4px 0;border-bottom:1px solid #f3f4f6}
+.due-notification li:last-child{border-bottom:none}
+.due-notification button{padding:4px 14px;background:#fef3c7;border-radius:6px;font-size:12px;font-weight:500;color:#92400e;transition:background .15s}
+.due-notification button:hover{background:#fde68a}
+
 /* Spacing helpers */
 .mb8{margin-bottom:8px}
 .mb16{margin-bottom:16px}
@@ -236,6 +246,7 @@ const icons={
   star:(s)=>h('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'currentColor',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('polygon',{points:'12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'})),
   layout:(s)=>h('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('rect',{width:'18',height:'18',x:'3',y:'3',rx:'2',ry:'2'}),h('line',{x1:'3',y1:'9',x2:'21',y2:'9'}),h('line',{x1:'9',y1:'21',x2:'9',y2:'9'})),
   info:(s)=>h('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('circle',{cx:'12',cy:'12',r:'10'}),h('line',{x1:'12',y1:'16',x2:'12',y2:'12'}),h('line',{x1:'12',y1:'8',x2:'12.01',y2:'8'})),
+  bell:(s)=>h('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('path',{d:'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'}),h('path',{d:'M10.3 21a1.94 1.94 0 0 0 3.4 0'})),
 };
 const Icon=({name,size=18,style,className})=>{
   const fn=icons[name];
@@ -247,7 +258,7 @@ const Icon=({name,size=18,style,className})=>{
   return el;
 };
 
-// ── Constants ────────────────────────────────────────────────────────────────
+// ── Constants (themes, translations) ────────────────────────────────────────
 const THEMES=[
   {id:'classic',name:'Classic Indigo',primary:'#6366f1',bg:'#f3f4f6',surface:'#ffffff',text:'#1f2937'},
   {id:'sunset',name:'Sunset Orange',primary:'#f97316',bg:'#fff7ed',surface:'#ffffff',text:'#431407'},
@@ -272,8 +283,8 @@ const THEMES=[
 ];
 
 const T={
-  en:{appTitle:'Task Flow',myBoards:'My Boards',createBoard:'Create New Board',welcomeTitle:'Select a Board',welcomeSubtitle:'Select a board from the left to start tracking, or create a new one.',addTask:'Add Task',addColumn:'Add Column',subtasks:'Subtasks / Checklist',details:'Details',dueDate:'Due Date',delete:'Delete',export:'Export Markdown',import:'Import Markdown',completion:'Completion',theme:'Theme',confirmDelete:'Are you sure? This cannot be undone.',confirmAction:'Confirm Action',newBoardName:'New Project',newTaskName:'New Task',newColumnName:'Status',addDetailsPrompt:'Add extra details here...',search:'Search boards...',toggleLang:'Passer en Français',noSubtasks:'No subtasks yet!',importPlaceholder:'Paste Markdown content here...',importAction:'Import',cancel:'Cancel',deleteTask:'Delete Task',selectTheme:'Select a Theme'},
-  fr:{appTitle:'Flux de Tâches',myBoards:'Mes Tableaux',createBoard:'Créer un Tableau',welcomeTitle:'Sélectionnez un Tableau',welcomeSubtitle:'Choisissez un tableau à gauche pour commencer.',addTask:'Ajouter Tâche',addColumn:'Ajouter Colonne',subtasks:'Sous-tâches / Liste',details:'Détails',dueDate:"Date d'échéance",delete:'Supprimer',export:'Exporter Markdown',import:'Importer Markdown',completion:'Complétion',theme:'Thème',confirmDelete:'Êtes-vous sûr ? Cette action est irréversible.',confirmAction:"Confirmer l'action",newBoardName:'Nouveau Projet',newTaskName:'Nouvelle Tâche',newColumnName:'Statut',addDetailsPrompt:'Ajoutez des détails ici...',search:'Rechercher...',toggleLang:'Switch to English',noSubtasks:'Aucune sous-tâche !',importPlaceholder:'Collez le contenu Markdown ici...',importAction:'Importer',cancel:'Annuler',deleteTask:'Supprimer la tâche',selectTheme:'Choisir un thème'},
+  en:{appTitle:'Task Flow',myBoards:'My Boards',createBoard:'Create New Board',welcomeTitle:'Select a Board',welcomeSubtitle:'Select a board from the left to start tracking, or create a new one.',addTask:'Add Task',addColumn:'Add Column',subtasks:'Subtasks / Checklist',details:'Details',dueDate:'Due Date',delete:'Delete',export:'Export Markdown',import:'Import Markdown',completion:'Completion',theme:'Theme',confirmDelete:'Are you sure? This cannot be undone.',confirmAction:'Confirm Action',newBoardName:'New Project',newTaskName:'New Task',newColumnName:'Status',addDetailsPrompt:'Add extra details here...',search:'Search boards...',toggleLang:'Passer en Français',noSubtasks:'No subtasks yet!',importPlaceholder:'Paste Markdown content here...',importAction:'Import',cancel:'Cancel',deleteTask:'Delete Task',selectTheme:'Select a Theme',dueToday:'Subtasks due today'},
+  fr:{appTitle:'Flux de Tâches',myBoards:'Mes Tableaux',createBoard:'Créer un Tableau',welcomeTitle:'Sélectionnez un Tableau',welcomeSubtitle:'Choisissez un tableau à gauche pour commencer.',addTask:'Ajouter Tâche',addColumn:'Ajouter Colonne',subtasks:'Sous-tâches / Liste',details:'Détails',dueDate:"Date d'échéance",delete:'Supprimer',export:'Exporter Markdown',import:'Importer Markdown',completion:'Complétion',theme:'Thème',confirmDelete:'Êtes-vous sûr ? Cette action est irréversible.',confirmAction:"Confirmer l'action",newBoardName:'Nouveau Projet',newTaskName:'Nouvelle Tâche',newColumnName:'Statut',addDetailsPrompt:'Ajoutez des détails ici...',search:'Rechercher...',toggleLang:'Switch to English',noSubtasks:'Aucune sous-tâche !',importPlaceholder:'Collez le contenu Markdown ici...',importAction:'Importer',cancel:'Annuler',deleteTask:'Supprimer la tâche',selectTheme:'Choisir un thème',dueToday:'Sous-tâches dues aujourd\'hui'},
 };
 
 const genId=()=>Math.random().toString(36).substr(2,9);
@@ -282,11 +293,7 @@ const calcProgress=(task)=>{
   return Math.round(task.subtasks.filter(s=>s.completed).length/task.subtasks.length*100);
 };
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-const removeDiacritics = (str) => {
-  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-};
-
+const removeDiacritics = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const matchesSearch = (board, term) => {
   const normalizedTerm = removeDiacritics(term.toLowerCase());
   if (removeDiacritics(board.name.toLowerCase()).includes(normalizedTerm)) return true;
@@ -303,7 +310,6 @@ const matchesSearch = (board, term) => {
   return false;
 };
 
-// ── Markdown parser ──────────────────────────────────────────────────────────
 const parseMD=(md)=>{
   const lines=md.split(/\r?\n/);
   let boardName=null,themeId=null,columns=[],currentCol=null,currentTask=null,currentSubtask=null,errors=[];
@@ -329,7 +335,6 @@ const parseMD=(md)=>{
 };
 
 // ── Components ───────────────────────────────────────────────────────────────
-
 function ConfirmModal({isOpen,message,onConfirm,onCancel,t}){
   if(!isOpen)return null;
   return h('div',{className:'modal-backdrop',onClick:onCancel},
@@ -366,11 +371,7 @@ function ThemePicker({currentThemeId,onSelect,onClose,t}){
 
 function Sidebar({boards,activeBoardId,onSelect,onCreate,onDelete,isCollapsed,toggleCollapse,t,toggleLang,showInfo,onToggleInfo,theme}){
   const[filter,setFilter]=useState('');
-
-  const filtered = filter.trim() === ''
-    ? boards
-    : boards.filter(b => matchesSearch(b, filter.trim()));
-
+  const filtered = filter.trim() === '' ? boards : boards.filter(b => matchesSearch(b, filter.trim()));
   return h('div',{className:'sidebar '+(isCollapsed?'collapsed':'expanded'),style:{backgroundColor:theme.bg}},
     h('div',{className:'sidebar-header',style:{backgroundColor:theme.bg}},
       !isCollapsed&&h('div',{className:'logo'},h('img',{src:'icons/icon-192.png',style:{width:28,height:28,borderRadius:6,objectFit:'cover'}}),'TaskFlow'),
@@ -426,10 +427,16 @@ function TaskModal({task,onClose,onUpdate,onDelete,t,theme}){
     onUpdate({...task,subtasks:task.subtasks.filter(s=>s.id!==id)});
     if(activeStId===id)setActiveStId(null);
   };
-  const onDragStart=(e,id)=>{e.dataTransfer.setData('stId',id);};
+  const onDragStart=(e,id)=>{
+    e.dataTransfer.setData('text/plain', 'subtask:'+id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
   const onDrop=(e,targetIdx)=>{
     e.preventDefault();e.stopPropagation();
-    const id=e.dataTransfer.getData('stId');if(!id)return;
+    const raw=e.dataTransfer.getData('text/plain');
+    if(!raw)return;
+    const [type, id] = raw.split(':');
+    if(type!=='subtask' || !id) return;
     const arr=[...task.subtasks];
     const from=arr.findIndex(s=>s.id===id);
     if(from===-1||from===targetIdx)return;
@@ -442,7 +449,6 @@ function TaskModal({task,onClose,onUpdate,onDelete,t,theme}){
   return h('div',{className:'modal-backdrop',onClick:onClose},
     h('div',{className:'modal task-modal',onClick:e=>e.stopPropagation()},
       h('div',{className:'task-modal-main'},
-        // Header
         h('div',{className:'task-modal-header'},
           h('div',{style:{flex:1,marginRight:24}},
             h('div',{className:'task-id'},
@@ -458,9 +464,7 @@ function TaskModal({task,onClose,onUpdate,onDelete,t,theme}){
             h('button',{className:'btn-close',onClick:onClose},h(Icon,{name:'x',size:22}))
           )
         ),
-        // Body
         h('div',{className:'task-modal-body'},
-          // Progress
           h('div',{className:'mb24'},
             h('div',{className:'flex justify-between items-center mb8'},
               h('span',{className:'section-title'},h(Icon,{name:'check-square',size:16}),t.completion),
@@ -470,12 +474,10 @@ function TaskModal({task,onClose,onUpdate,onDelete,t,theme}){
               h('div',{className:'progress-bar',style:{width:progress+'%',backgroundColor:theme.primary}})
             )
           ),
-          // Details
           h('div',{className:'mb24'},
             h('div',{className:'section-title mb8'},h(Icon,{name:'file-text',size:16}),t.details),
             h('textarea',{className:'details-textarea',placeholder:t.addDetailsPrompt,value:task.description||'',onChange:e=>onUpdate({...task,description:e.target.value})})
           ),
-          // Subtasks
           h('div',null,
             h('div',{className:'section-title mb8'},h(Icon,{name:'list-todo',size:16}),t.subtasks),
             h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
@@ -514,7 +516,6 @@ function TaskModal({task,onClose,onUpdate,onDelete,t,theme}){
           )
         )
       ),
-      // Subtask detail panel
       activeSt&&h('div',{className:'subtask-panel'},
         h('div',{className:'subtask-panel-header'},
           h('span',{className:'section-title'},h(Icon,{name:'align-left',size:15}),t.details),
@@ -537,17 +538,31 @@ function TaskModal({task,onClose,onUpdate,onDelete,t,theme}){
 
 function KanbanColumn({column,tasks,onDropTask,onUpdateColumn,onDeleteColumn,onTaskClick,onAddTask,t,theme}){
   const handleDragStart = (e, id) => {
-    e.dataTransfer.setData('taskId', id);
+    e.dataTransfer.setData('text/plain', 'task:'+id);
     e.dataTransfer.effectAllowed = 'move';
     e.target.style.opacity = '0.45';
   };
   const handleDragEnd = (e) => {
     e.target.style.opacity = '1';
   };
+  const handleColumnDrop = (e) => {
+    e.preventDefault();
+    const raw = e.dataTransfer.getData('text/plain');
+    if(!raw) return;
+    const [type, taskId] = raw.split(':');
+    if(type==='task' && taskId) onDropTask(taskId, column.id, null);
+  };
+  const handleTaskDrop = (e, idx) => {
+    e.stopPropagation(); e.preventDefault();
+    const raw = e.dataTransfer.getData('text/plain');
+    if(!raw) return;
+    const [type, taskId] = raw.split(':');
+    if(type==='task' && taskId) onDropTask(taskId, column.id, idx);
+  };
 
   return h('div',{className:'column',
     onDragOver:e=>{e.preventDefault(); e.dataTransfer.dropEffect = 'move';},
-    onDrop:e=>{e.preventDefault(); const id=e.dataTransfer.getData('taskId'); if(id) onDropTask(id, column.id, null);}},
+    onDrop:handleColumnDrop},
     h('div',{className:'col-header'},
       h('div',{className:'col-title-wrap'},
         h('input',{className:'col-title',value:column.title,
@@ -564,7 +579,7 @@ function KanbanColumn({column,tasks,onDropTask,onUpdateColumn,onDeleteColumn,onT
         return h('div',{key:task.id,draggable:true,
           onDragStart:e=>handleDragStart(e,task.id),
           onDragEnd:handleDragEnd,
-          onDrop:e=>{e.stopPropagation();e.preventDefault(); const id=e.dataTransfer.getData('taskId'); if(id!==task.id) onDropTask(id,column.id,idx);},
+          onDrop:e=>handleTaskDrop(e,idx),
           onDragOver:e=>{e.preventDefault(); e.dataTransfer.dropEffect = 'move';},
           onClick:()=>onTaskClick(task),
           className:'task-card'},
@@ -588,6 +603,26 @@ function KanbanColumn({column,tasks,onDropTask,onUpdateColumn,onDeleteColumn,onT
   );
 }
 
+function DueNotification({items,onDismiss,theme}){
+  if(!items||items.length===0) return null;
+  const lang = T[theme] || T.en; // theme here is actually the language code
+  const t = T[lang] || T.en;
+  return h('div',{className:'due-notification'},
+    h('h4',null, h(Icon,{name:'bell',size:16,style:{color:'#92400e'}}), t.dueToday),
+    h('ul',null,
+      items.map((item, idx) =>
+        h('li',{key:idx},
+          h('span',{style:{fontWeight:600}}, item.subtaskTitle),
+          ' — ',
+          item.taskTitle,
+          ' (', item.boardName, ')'
+        )
+      )
+    ),
+    h('button',{onClick:onDismiss}, 'OK')
+  );
+}
+
 function App(){
   const[boards,setBoards]=useState([]);
   const[activeBoardId,setActiveBoardId]=useState(null);
@@ -602,6 +637,7 @@ function App(){
   const[selectedFile,setSelectedFile]=useState('');
   const[confirm,setConfirm]=useState({isOpen:false,message:'',onConfirm:null});
   const[undoSnap,setUndoSnap]=useState(null);
+  const[dismissedDue, setDismissedDue] = useState(false);
   const boardAreaRef = useRef(null);
 
   const t=T[lang];
@@ -634,6 +670,32 @@ function App(){
 
   const activeBoard=useMemo(()=>boards.find(b=>b.id===activeBoardId),[boards,activeBoardId]);
   const theme=useMemo(()=>activeBoard?(THEMES.find(t=>t.id===activeBoard.themeId)||THEMES[0]):THEMES[0],[activeBoard]);
+
+  // Compute due subtasks for the active board
+  const dueTodayItems = useMemo(() => {
+    if (!activeBoard) return [];
+    const today = new Date().toISOString().slice(0,10);
+    const items = [];
+    activeBoard.columns.forEach(col => {
+      col.tasks.forEach(task => {
+        (task.subtasks||[]).forEach(st => {
+          if (st.dueDate && st.dueDate === today && !st.completed) {
+            items.push({
+              subtaskTitle: st.title || '(untitled)',
+              taskTitle: task.title,
+              boardName: activeBoard.name
+            });
+          }
+        });
+      });
+    });
+    return items;
+  }, [activeBoard]);
+
+  // Show notification when board changes and due items exist
+  useEffect(() => {
+    setDismissedDue(false);
+  }, [activeBoardId]);
 
   const askConfirm=(msg,fn)=>setConfirm({isOpen:true,message:msg,onConfirm:fn});
   const closeConfirm=()=>setConfirm(c=>({...c,isOpen:false}));
@@ -725,7 +787,6 @@ function App(){
     if (!activeBoard) return;
     const newCol = { id: genId(), title: t.newColumnName, tasks: [] };
     updateBoard({ ...activeBoard, columns: [...activeBoard.columns, newCol] });
-    // Wait for render then scroll to the end of board-area
     setTimeout(() => {
       if (boardAreaRef.current) {
         boardAreaRef.current.scrollLeft = boardAreaRef.current.scrollWidth;
@@ -743,7 +804,6 @@ function App(){
         h('button',{className:'btn-undo',onClick:undoImport},'Undo')
       ),
       activeBoard?h(Fragment,null,
-        // Top bar
         h('div',{className:'topbar'},
           h('div',{className:'flex items-center gap8'},
             h('input',{className:'board-title-input',style:{color:theme.text},value:activeBoard.name,
@@ -757,7 +817,6 @@ function App(){
             h('button',{className:'btn-icon',title:t.export,onClick:exportMD},h(Icon,{name:'download',size:17}))
           )
         ),
-        // Board
         h('div',{className:'board-area',ref:boardAreaRef},
           h('div',{className:'columns-wrap'},
             activeBoard.columns.map(col=>
@@ -776,7 +835,6 @@ function App(){
         h('h2',null,t.welcomeTitle),
         h('p',null,t.welcomeSubtitle)
       ),
-      // Modals
       activeTask&&h(TaskModal,{task:activeTask,onClose:()=>setActiveTask(null),onUpdate:updateTask,onDelete:deleteTask,t,theme}),
       showTheme&&activeBoard&&h(ThemePicker,{currentThemeId:activeBoard.themeId,onSelect:id=>updateBoard({...activeBoard,themeId:id}),onClose:()=>setShowTheme(false),t}),
       showImport&&h('div',{className:'modal-backdrop',onClick:()=>setShowImport(false)},
@@ -802,14 +860,16 @@ function App(){
         )
       ),
       h(ConfirmModal,{isOpen:confirm.isOpen,message:confirm.message,onConfirm:confirm.onConfirm,onCancel:closeConfirm,t}),
-      // Centered info overlay
       showInfo&&h('div',{className:'info-overlay',onClick:()=>setShowInfo(false)},
         h('div',{className:'info-dialog',onClick:e=>e.stopPropagation()},
           h('div',null,h('strong',null,'Creator:'),' Noble Adounkpe'),
           h('div',{style:{marginTop:12}},h('strong',null,'About:'),' TaskFlow is the perfect combination of a Kanban board and a task list. You get to organize different tasks you\'d like carried out into subtasks, then into dedicated task lists.'),
           h('button',{onClick:()=>setShowInfo(false)},'Got it')
         )
-      )
+      ),
+      // Due notification popup (only if board active and not dismissed)
+      activeBoard && !dismissedDue && dueTodayItems.length > 0 &&
+        h(DueNotification,{items:dueTodayItems, onDismiss:()=>setDismissedDue(true), lang})
     )
   );
 }

@@ -23,14 +23,14 @@ textarea{resize:vertical}
 
 /* Layout */
 .app{display:flex;height:100vh;width:100vw;transition:background-color .4s}
-.sidebar{display:flex;flex-direction:column;height:100%;border-right:1px solid #e5e7eb;background:#fff;transition:width .2s;position:relative;z-index:30;flex-shrink:0}
+.sidebar{display:flex;flex-direction:column;height:100%;border-right:1px solid #e5e7eb;transition:width .2s;position:relative;z-index:30;flex-shrink:0}
 .sidebar.expanded{width:272px}
 .sidebar.collapsed{width:56px}
 .sidebar-header{padding:14px 12px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;min-height:56px}
 .logo{font-weight:700;font-size:17px;color:#4f46e5;display:flex;align-items:center;gap:8px;white-space:nowrap}
 .sidebar-body{padding:12px;display:flex;flex-direction:column;gap:10px}
-.btn-create{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;background:#4f46e5;color:#fff;padding:8px 14px;border-radius:8px;font-weight:500;transition:background .15s;white-space:nowrap}
-.btn-create:hover{background:#4338ca}
+.btn-create{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;color:#fff;padding:8px 14px;border-radius:8px;font-weight:500;transition:background .15s, opacity .15s;white-space:nowrap}
+.btn-create:hover{filter:brightness(.92)}
 .search-wrap{position:relative}
 .search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none}
 .search-input{width:100%;padding:7px 10px 7px 32px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;outline:none;transition:border .15s,box-shadow .15s}
@@ -45,7 +45,7 @@ textarea{resize:vertical}
 .btn-del-board{padding:4px;border-radius:5px;color:#9ca3af;transition:all .15s;opacity:0;flex-shrink:0}
 .board-item:hover .btn-del-board{opacity:1}
 .btn-del-board:hover{background:#fee2e2;color:#dc2626}
-.sidebar-footer{padding:12px;border-top:1px solid #f3f4f6}
+.sidebar-footer{padding:12px;border-top:1px solid #f3f4f6;display:flex;align-items:center;gap:8px}
 .btn-lang{display:flex;align-items:center;gap:6px;font-size:12px;color:#9ca3af;white-space:nowrap;transition:color .15s}
 .btn-lang:hover{color:#4f46e5}
 
@@ -186,6 +186,13 @@ textarea{resize:vertical}
 .btn-undo{padding:4px 12px;border-radius:6px;background:#fde68a;font-weight:500;transition:background .15s}
 .btn-undo:hover{background:#fcd34d}
 
+/* Centered info overlay */
+.info-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;z-index:45;padding:20px}
+.info-dialog{background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.18);padding:24px 28px;max-width:360px;text-align:left;font-size:14px;line-height:1.6;color:#374151}
+.info-dialog strong{display:block;margin-bottom:8px;font-size:15px;color:#1f2937}
+.info-dialog button{margin-top:16px;padding:6px 16px;background:#4f46e5;color:#fff;border-radius:6px;font-weight:500;transition:background .15s}
+.info-dialog button:hover{background:#4338ca}
+
 /* Spacing helpers */
 .mb8{margin-bottom:8px}
 .mb16{margin-bottom:16px}
@@ -228,6 +235,7 @@ const icons={
   'grip-vertical':(s)=>h('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('circle',{cx:'9',cy:'12',r:'1'}),h('circle',{cx:'9',cy:'5',r:'1'}),h('circle',{cx:'9',cy:'19',r:'1'}),h('circle',{cx:'15',cy:'12',r:'1'}),h('circle',{cx:'15',cy:'5',r:'1'}),h('circle',{cx:'15',cy:'19',r:'1'})),
   star:(s)=>h('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'currentColor',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('polygon',{points:'12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'})),
   layout:(s)=>h('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('rect',{width:'18',height:'18',x:'3',y:'3',rx:'2',ry:'2'}),h('line',{x1:'3',y1:'9',x2:'21',y2:'9'}),h('line',{x1:'9',y1:'21',x2:'9',y2:'9'})),
+  info:(s)=>h('svg',{width:s,height:s,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},h('circle',{cx:'12',cy:'12',r:'10'}),h('line',{x1:'12',y1:'16',x2:'12',y2:'12'}),h('line',{x1:'12',y1:'8',x2:'12.01',y2:'8'})),
 };
 const Icon=({name,size=18,style,className})=>{
   const fn=icons[name];
@@ -241,26 +249,26 @@ const Icon=({name,size=18,style,className})=>{
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const THEMES=[
-  {id:'classic',name:'Classic Indigo',primary:'#4f46e5',bg:'#f3f4f6',surface:'#ffffff',text:'#1f2937'},
-  {id:'sunset',name:'Sunset Orange',primary:'#ea580c',bg:'#fff7ed',surface:'#ffffff',text:'#431407'},
-  {id:'forest',name:'Forest Green',primary:'#15803d',bg:'#f0fdf4',surface:'#ffffff',text:'#14532d'},
-  {id:'ocean',name:'Deep Ocean',primary:'#0284c7',bg:'#f0f9ff',surface:'#ffffff',text:'#0c4a6e'},
-  {id:'berry',name:'Berry Blast',primary:'#db2777',bg:'#fdf2f8',surface:'#ffffff',text:'#831843'},
-  {id:'lavender',name:'Soft Lavender',primary:'#7c3aed',bg:'#f5f3ff',surface:'#ffffff',text:'#4c1d95'},
-  {id:'slate',name:'Clean Slate',primary:'#475569',bg:'#f8fafc',surface:'#ffffff',text:'#0f172a'},
-  {id:'coffee',name:'Coffee Break',primary:'#78350f',bg:'#fffbeb',surface:'#ffffff',text:'#451a03'},
-  {id:'teal',name:'Teal Waters',primary:'#0d9488',bg:'#f0fdfa',surface:'#ffffff',text:'#134e4a'},
-  {id:'rose',name:'Dusty Rose',primary:'#e11d48',bg:'#fff1f2',surface:'#ffffff',text:'#881337'},
-  {id:'midnight',name:'Midnight',primary:'#818cf8',bg:'#1e1b4b',surface:'#312e81',text:'#e0e7ff'},
-  {id:'lemon',name:'Lemonade',primary:'#ca8a04',bg:'#fefce8',surface:'#ffffff',text:'#713f12'},
-  {id:'sky',name:'Sky Blue',primary:'#0ea5e9',bg:'#e0f2fe',surface:'#ffffff',text:'#075985'},
-  {id:'emerald',name:'Emerald City',primary:'#059669',bg:'#ecfdf5',surface:'#ffffff',text:'#064e3b'},
-  {id:'royal',name:'Royal Purple',primary:'#9333ea',bg:'#faf5ff',surface:'#ffffff',text:'#581c87'},
-  {id:'cherry',name:'Cherry Red',primary:'#dc2626',bg:'#fef2f2',surface:'#ffffff',text:'#7f1d1d'},
-  {id:'cyan',name:'Electric Cyan',primary:'#0891b2',bg:'#ecfeff',surface:'#ffffff',text:'#164e63'},
-  {id:'stone',name:'Warm Stone',primary:'#57534e',bg:'#fafaf9',surface:'#ffffff',text:'#1c1917'},
-  {id:'lime',name:'Fresh Lime',primary:'#65a30d',bg:'#f7fee7',surface:'#ffffff',text:'#365314'},
-  {id:'fuschia',name:'Neon Fuschia',primary:'#c026d3',bg:'#fdf4ff',surface:'#ffffff',text:'#701a75'},
+  {id:'classic',name:'Classic Indigo',primary:'#6366f1',bg:'#f3f4f6',surface:'#ffffff',text:'#1f2937'},
+  {id:'sunset',name:'Sunset Orange',primary:'#f97316',bg:'#fff7ed',surface:'#ffffff',text:'#431407'},
+  {id:'forest',name:'Forest Green',primary:'#22c55e',bg:'#f0fdf4',surface:'#ffffff',text:'#14532d'},
+  {id:'ocean',name:'Deep Ocean',primary:'#0ea5e9',bg:'#f0f9ff',surface:'#ffffff',text:'#0c4a6e'},
+  {id:'berry',name:'Berry Blast',primary:'#ec4899',bg:'#fdf2f8',surface:'#ffffff',text:'#831843'},
+  {id:'lavender',name:'Soft Lavender',primary:'#8b5cf6',bg:'#f5f3ff',surface:'#ffffff',text:'#4c1d95'},
+  {id:'slate',name:'Clean Slate',primary:'#64748b',bg:'#f8fafc',surface:'#ffffff',text:'#0f172a'},
+  {id:'coffee',name:'Coffee Break',primary:'#92400e',bg:'#fffbeb',surface:'#ffffff',text:'#451a03'},
+  {id:'teal',name:'Teal Waters',primary:'#14b8a6',bg:'#f0fdfa',surface:'#ffffff',text:'#134e4a'},
+  {id:'rose',name:'Dusty Rose',primary:'#f43f5e',bg:'#fff1f2',surface:'#ffffff',text:'#881337'},
+  {id:'midnight',name:'Midnight',primary:'#a5b4fc',bg:'#1e1b4b',surface:'#312e81',text:'#e0e7ff'},
+  {id:'lemon',name:'Lemonade',primary:'#eab308',bg:'#fefce8',surface:'#ffffff',text:'#713f12'},
+  {id:'sky',name:'Sky Blue',primary:'#38bdf8',bg:'#e0f2fe',surface:'#ffffff',text:'#075985'},
+  {id:'emerald',name:'Emerald City',primary:'#10b981',bg:'#ecfdf5',surface:'#ffffff',text:'#064e3b'},
+  {id:'royal',name:'Royal Purple',primary:'#a855f7',bg:'#faf5ff',surface:'#ffffff',text:'#581c87'},
+  {id:'cherry',name:'Cherry Red',primary:'#ef4444',bg:'#fef2f2',surface:'#ffffff',text:'#7f1d1d'},
+  {id:'cyan',name:'Electric Cyan',primary:'#06b6d4',bg:'#ecfeff',surface:'#ffffff',text:'#164e63'},
+  {id:'stone',name:'Warm Stone',primary:'#78716c',bg:'#fafaf9',surface:'#ffffff',text:'#1c1917'},
+  {id:'lime',name:'Fresh Lime',primary:'#84cc16',bg:'#f7fee7',surface:'#ffffff',text:'#365314'},
+  {id:'fuschia',name:'Neon Fuschia',primary:'#d946ef',bg:'#fdf4ff',surface:'#ffffff',text:'#701a75'},
 ];
 
 const T={
@@ -272,6 +280,27 @@ const genId=()=>Math.random().toString(36).substr(2,9);
 const calcProgress=(task)=>{
   if(!task.subtasks||task.subtasks.length===0)return 0;
   return Math.round(task.subtasks.filter(s=>s.completed).length/task.subtasks.length*100);
+};
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+const removeDiacritics = (str) => {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+};
+
+const matchesSearch = (board, term) => {
+  const normalizedTerm = removeDiacritics(term.toLowerCase());
+  if (removeDiacritics(board.name.toLowerCase()).includes(normalizedTerm)) return true;
+  for (const col of board.columns) {
+    for (const task of col.tasks) {
+      if (removeDiacritics(task.title.toLowerCase()).includes(normalizedTerm)) return true;
+      if (task.subtasks) {
+        for (const st of task.subtasks) {
+          if (removeDiacritics(st.title.toLowerCase()).includes(normalizedTerm)) return true;
+        }
+      }
+    }
+  }
+  return false;
 };
 
 // ── Markdown parser ──────────────────────────────────────────────────────────
@@ -335,16 +364,20 @@ function ThemePicker({currentThemeId,onSelect,onClose,t}){
   );
 }
 
-function Sidebar({boards,activeBoardId,onSelect,onCreate,onDelete,isCollapsed,toggleCollapse,t,toggleLang}){
+function Sidebar({boards,activeBoardId,onSelect,onCreate,onDelete,isCollapsed,toggleCollapse,t,toggleLang,showInfo,onToggleInfo,theme}){
   const[filter,setFilter]=useState('');
-  const filtered=boards.filter(b=>b.name.toLowerCase().includes(filter.toLowerCase()));
-  return h('div',{className:'sidebar '+(isCollapsed?'collapsed':'expanded')},
-    h('div',{className:'sidebar-header'},
+
+  const filtered = filter.trim() === ''
+    ? boards
+    : boards.filter(b => matchesSearch(b, filter.trim()));
+
+  return h('div',{className:'sidebar '+(isCollapsed?'collapsed':'expanded'),style:{backgroundColor:theme.bg}},
+    h('div',{className:'sidebar-header',style:{backgroundColor:theme.bg}},
       !isCollapsed&&h('div',{className:'logo'},h('img',{src:'icons/icon-192.png',style:{width:28,height:28,borderRadius:6,objectFit:'cover'}}),'TaskFlow'),
       h('button',{className:'btn-icon',onClick:toggleCollapse},h(Icon,{name:isCollapsed?'panel-left-open':'panel-left-close',size:18}))
     ),
     !isCollapsed&&h('div',{className:'sidebar-body'},
-      h('button',{className:'btn-create',onClick:onCreate},h(Icon,{name:'plus',size:15}),t.createBoard),
+      h('button',{className:'btn-create',style:{backgroundColor:theme.primary},onClick:onCreate},h(Icon,{name:'plus',size:15}),t.createBoard),
       h('div',{className:'search-wrap'},
         h(Icon,{name:'search',size:15}),
         h('input',{className:'search-input',placeholder:t.search,value:filter,onChange:e=>setFilter(e.target.value)})
@@ -352,18 +385,23 @@ function Sidebar({boards,activeBoardId,onSelect,onCreate,onDelete,isCollapsed,to
     ),
     h('div',{className:'boards-list'},
       filtered.map(board=>{
-        const theme=THEMES.find(th=>th.id===board.themeId)||THEMES[0];
+        const th=THEMES.find(th=>th.id===board.themeId)||THEMES[0];
         return h('div',{key:board.id,className:'board-item'+(activeBoardId===board.id?' active':''),onClick:()=>onSelect(board.id)},
-          h('div',{className:'board-dot',style:{backgroundColor:theme.primary}}),
+          h('div',{className:'board-dot',style:{backgroundColor:th.primary}}),
           !isCollapsed&&h('div',{className:'board-name'},board.name),
           !isCollapsed&&h('button',{className:'btn-del-board',onClick:e=>{e.stopPropagation();onDelete(board.id);}},h(Icon,{name:'trash',size:13}))
         );
       })
     ),
     h('div',{className:'sidebar-footer'},
-      h('button',{className:'btn-lang',onClick:toggleLang},
-        h(Icon,{name:'languages',size:14}),
-        !isCollapsed&&t.toggleLang
+      h('div',{style:{position:'relative',display:'flex',alignItems:'center',gap:'4px'}},
+        h('button',{className:'btn-lang',onClick:toggleLang},
+          h(Icon,{name:'languages',size:14}),
+          !isCollapsed&&t.toggleLang
+        ),
+        h('button',{className:'btn-lang',style:{padding:'4px',borderRadius:'50%'},onClick:onToggleInfo},
+          h(Icon,{name:'info',size:16})
+        )
       )
     )
   );
@@ -498,9 +536,18 @@ function TaskModal({task,onClose,onUpdate,onDelete,t,theme}){
 }
 
 function KanbanColumn({column,tasks,onDropTask,onUpdateColumn,onDeleteColumn,onTaskClick,onAddTask,t,theme}){
+  const handleDragStart = (e, id) => {
+    e.dataTransfer.setData('taskId', id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.style.opacity = '0.45';
+  };
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
+  };
+
   return h('div',{className:'column',
-    onDragOver:e=>e.preventDefault(),
-    onDrop:e=>{e.preventDefault();const id=e.dataTransfer.getData('taskId');if(id)onDropTask(id,column.id,null);}},
+    onDragOver:e=>{e.preventDefault(); e.dataTransfer.dropEffect = 'move';},
+    onDrop:e=>{e.preventDefault(); const id=e.dataTransfer.getData('taskId'); if(id) onDropTask(id, column.id, null);}},
     h('div',{className:'col-header'},
       h('div',{className:'col-title-wrap'},
         h('input',{className:'col-title',value:column.title,
@@ -515,10 +562,10 @@ function KanbanColumn({column,tasks,onDropTask,onUpdateColumn,onDeleteColumn,onT
       tasks.map((task,idx)=>{
         const prog=calcProgress(task);
         return h('div',{key:task.id,draggable:true,
-          onDragStart:e=>{e.dataTransfer.setData('taskId',task.id);e.target.style.opacity='.45';},
-          onDragEnd:e=>{e.target.style.opacity='1';},
-          onDrop:e=>{e.stopPropagation();e.preventDefault();const id=e.dataTransfer.getData('taskId');if(id!==task.id)onDropTask(id,column.id,idx);},
-          onDragOver:e=>e.preventDefault(),
+          onDragStart:e=>handleDragStart(e,task.id),
+          onDragEnd:handleDragEnd,
+          onDrop:e=>{e.stopPropagation();e.preventDefault(); const id=e.dataTransfer.getData('taskId'); if(id!==task.id) onDropTask(id,column.id,idx);},
+          onDragOver:e=>{e.preventDefault(); e.dataTransfer.dropEffect = 'move';},
           onClick:()=>onTaskClick(task),
           className:'task-card'},
           h('div',{className:'task-accent',style:{backgroundColor:theme.primary}}),
@@ -549,11 +596,13 @@ function App(){
   const[collapsed,setCollapsed]=useState(false);
   const[showImport,setShowImport]=useState(false);
   const[showTheme,setShowTheme]=useState(false);
+  const[showInfo,setShowInfo]=useState(false);
   const[importText,setImportText]=useState('');
   const[importMode,setImportMode]=useState('paste');
   const[selectedFile,setSelectedFile]=useState('');
   const[confirm,setConfirm]=useState({isOpen:false,message:'',onConfirm:null});
   const[undoSnap,setUndoSnap]=useState(null);
+  const boardAreaRef = useRef(null);
 
   const t=T[lang];
 
@@ -672,10 +721,23 @@ function App(){
     setBoards(undoSnap.boards);setActiveBoardId(undoSnap.activeBoardId);setUndoSnap(null);
   };
 
-  return h('div',{className:'app',style:{backgroundColor:activeBoard?theme.bg:'#f9fafb'}},
+  const addColumn = () => {
+    if (!activeBoard) return;
+    const newCol = { id: genId(), title: t.newColumnName, tasks: [] };
+    updateBoard({ ...activeBoard, columns: [...activeBoard.columns, newCol] });
+    // Wait for render then scroll to the end of board-area
+    setTimeout(() => {
+      if (boardAreaRef.current) {
+        boardAreaRef.current.scrollLeft = boardAreaRef.current.scrollWidth;
+      }
+    }, 100);
+  };
+
+  return h('div',{className:'app',style:{backgroundColor:activeBoard?theme.bg:'#f9fafb'},onContextMenu:e=>e.preventDefault()},
     h(Sidebar,{boards,activeBoardId,onSelect:setActiveBoardId,onCreate:createBoard,onDelete:deleteBoard,
-      isCollapsed:collapsed,toggleCollapse:()=>setCollapsed(c=>!c),t,toggleLang:()=>setLang(l=>l==='en'?'fr':'en')}),
-    h('div',{className:'main'},
+      isCollapsed:collapsed,toggleCollapse:()=>setCollapsed(c=>!c),t,toggleLang:()=>setLang(l=>l==='en'?'fr':'en'),
+      showInfo,onToggleInfo:()=>setShowInfo(prev=>!prev),theme}),
+    h('div',{className:'main',onContextMenu:e=>e.preventDefault()},
       undoSnap&&h('div',{className:'undo-banner'},
         h('span',null,'Board imported. You can undo to revert.'),
         h('button',{className:'btn-undo',onClick:undoImport},'Undo')
@@ -696,15 +758,14 @@ function App(){
           )
         ),
         // Board
-        h('div',{className:'board-area'},
+        h('div',{className:'board-area',ref:boardAreaRef},
           h('div',{className:'columns-wrap'},
             activeBoard.columns.map(col=>
               h(KanbanColumn,{key:col.id,column:col,tasks:col.tasks,onDropTask:dropTask,
                 onUpdateColumn:uc=>updateBoard({...activeBoard,columns:activeBoard.columns.map(c=>c.id===uc.id?uc:c)}),
                 onDeleteColumn:deleteColumn,onTaskClick:setActiveTask,onAddTask:addTask,t,theme})
             ),
-            h('button',{className:'btn-add-col',title:t.addColumn,
-              onClick:()=>updateBoard({...activeBoard,columns:[...activeBoard.columns,{id:genId(),title:t.newColumnName,tasks:[]}]})},
+            h('button',{className:'btn-add-col',title:t.addColumn, onClick: addColumn},
               h('div',{className:'btn-add-col-inner'},h(Icon,{name:'plus',size:22}))
             ),
             h('div',{style:{width:16,flexShrink:0}})
@@ -740,7 +801,15 @@ function App(){
           )
         )
       ),
-      h(ConfirmModal,{isOpen:confirm.isOpen,message:confirm.message,onConfirm:confirm.onConfirm,onCancel:closeConfirm,t})
+      h(ConfirmModal,{isOpen:confirm.isOpen,message:confirm.message,onConfirm:confirm.onConfirm,onCancel:closeConfirm,t}),
+      // Centered info overlay
+      showInfo&&h('div',{className:'info-overlay',onClick:()=>setShowInfo(false)},
+        h('div',{className:'info-dialog',onClick:e=>e.stopPropagation()},
+          h('div',null,h('strong',null,'Creator:'),' Noble Adounkpe'),
+          h('div',{style:{marginTop:12}},h('strong',null,'About:'),' TaskFlow is the perfect combination of a Kanban board and a task list. You get to organize different tasks you\'d like carried out into subtasks, then into dedicated task lists.'),
+          h('button',{onClick:()=>setShowInfo(false)},'Got it')
+        )
+      )
     )
   );
 }

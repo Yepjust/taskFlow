@@ -516,19 +516,25 @@ function TaskModal({task,onClose,onUpdate,onDelete,t,theme}){
           )
         )
       ),
-      activeSt&&h('div',{className:'subtask-panel'},
-        h('div',{className:'subtask-panel-header'},
-          h('span',{className:'section-title'},h(Icon,{name:'align-left',size:15}),t.details),
-          h('button',{className:'btn-close',onClick:()=>setActiveStId(null)},h(Icon,{name:'x',size:16}))
-        ),
-        h('div',{className:'subtask-panel-body'},
-          h('div',null,
-            h('div',{className:'field-label'},activeSt.title||'Subtask'),
-            h('textarea',{className:'subtask-notes',placeholder:t.addDetailsPrompt,value:activeSt.details||'',onChange:e=>updateSt({...activeSt,details:e.target.value})})
+      activeSt&&h(Fragment,null,
+        h('div',{style:{
+          position:'absolute', top:0, left:0, right:0, bottom:0,
+          zIndex:59, background:'rgba(255,255,255,0.01)'
+        }, onClick:()=>setActiveStId(null)}),
+        h('div',{className:'subtask-panel'},
+          h('div',{className:'subtask-panel-header'},
+            h('span',{className:'section-title'},h(Icon,{name:'align-left',size:15}),t.details),
+            h('button',{className:'btn-close',onClick:()=>setActiveStId(null)},h(Icon,{name:'x',size:16}))
           ),
-          h('div',null,
-            h('div',{className:'field-label'},h(Icon,{name:'calendar',size:13}),t.dueDate),
-            h('input',{type:'date',className:'date-input',value:activeSt.dueDate||'',onChange:e=>updateSt({...activeSt,dueDate:e.target.value})})
+          h('div',{className:'subtask-panel-body'},
+            h('div',null,
+              h('div',{className:'field-label'},activeSt.title||'Subtask'),
+              h('textarea',{className:'subtask-notes',placeholder:t.addDetailsPrompt,value:activeSt.details||'',onChange:e=>updateSt({...activeSt,details:e.target.value})})
+            ),
+            h('div',null,
+              h('div',{className:'field-label'},h(Icon,{name:'calendar',size:13}),t.dueDate),
+              h('input',{type:'date',className:'date-input',value:activeSt.dueDate||'',onChange:e=>updateSt({...activeSt,dueDate:e.target.value})})
+            )
           )
         )
       )
@@ -591,7 +597,7 @@ function KanbanColumn({column,tasks,onDropTask,onUpdateColumn,onDeleteColumn,onT
                 h(Icon,{name:prog===100?'check-circle':'circle',size:13,style:prog===100?{color:'#22c55e'}:{}}),
                 h('span',null,(task.subtasks||[]).length)
               ),
-              h('span',{style:{fontFamily:'monospace',fontSize:11}},prog+'%')
+              h('span',{style:{fontFamily:'monospace',fontSize:11,color:theme.primary}},prog+'%')
             )
           )
         );
@@ -602,6 +608,7 @@ function KanbanColumn({column,tasks,onDropTask,onUpdateColumn,onDeleteColumn,onT
     )
   );
 }
+
 
 function DueNotification({items,onDismiss,theme}){
   if(!items||items.length===0) return null;
@@ -624,6 +631,63 @@ function DueNotification({items,onDismiss,theme}){
   );
 }
 
+function CelebrationOverlay({onDone}){
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => { setVisible(false); onDone && onDone(); }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!visible) return null;
+
+  // Generate random confetti pieces and emoji positions
+  const pieces = Array.from({length: 60}, (_, i) => {
+    const left = Math.random() * 100;
+    const delay = Math.random() * 0.8;
+    const duration = 1.5 + Math.random() * 1.5;
+    const size = 6 + Math.random() * 8;
+    const color = ['#fbbf24','#f97316','#ef4444','#8b5cf6','#22c55e','#0ea5e9'][i % 6];
+    return h('div',{key:i, style:{
+      position:'absolute', left:left+'%', top:'-10%',
+      width:size+'px', height:size+'px', backgroundColor:color,
+      borderRadius: size>8 ? '2px' : '50%',
+      opacity:0.9,
+      animation: `confettiFall ${duration}s ease-in ${delay}s forwards`,
+      zIndex:9999
+    }});
+  });
+
+  const emojis = ['✨','🥳','🎈','🎉','🎊','🎇'];
+  const emojiElements = emojis.map((emoji, i) => {
+    const left = 15 + i * 12;
+    const delay = i * 0.15;
+    return h('div',{key:'e'+i, style:{
+      position:'absolute', left:left+'%', top:'-20%',
+      fontSize:36 + (i%3)*8,
+      animation: `emojiDrop 2s ease-out ${delay}s forwards`,
+      zIndex:10000, pointerEvents:'none'
+    }}, emoji);
+  });
+
+  return h('div',{className:'celebration-overlay', style:{
+    position:'fixed', inset:0, pointerEvents:'none', zIndex:2000, overflow:'hidden'
+  }},
+    pieces,
+    emojiElements,
+    h('style',null,`
+      @keyframes confettiFall {
+        0% { transform: translateY(0) rotate(0deg); opacity:1; }
+        100% { transform: translateY(110vh) rotate(720deg); opacity:0; }
+      }
+      @keyframes emojiDrop {
+        0% { transform: translateY(0) scale(0); opacity:1; }
+        60% { transform: translateY(40vh) scale(1.4); opacity:1; }
+        100% { transform: translateY(100vh) scale(0.8); opacity:0; }
+      }
+    `)
+  );
+}
+
 function App(){
   const[boards,setBoards]=useState([]);
   const[activeBoardId,setActiveBoardId]=useState(null);
@@ -638,6 +702,7 @@ function App(){
   const[selectedFile,setSelectedFile]=useState('');
   const[confirm,setConfirm]=useState({isOpen:false,message:'',onConfirm:null});
   const[undoSnap,setUndoSnap]=useState(null);
+  const[celebrateTaskId, setCelebrateTaskId] = useState(null);
   const[dismissedDue, setDismissedDue] = useState(false);
   const boardAreaRef = useRef(null);
 
@@ -750,9 +815,17 @@ function App(){
   };
 
   const updateTask=ut=>{
-    updateBoard({...activeBoard,columns:activeBoard.columns.map(c=>({...c,tasks:c.tasks.map(t=>t.id===ut.id?ut:t)}))});
-    setActiveTask(ut);
-  };
+  const oldTask = activeBoard?.columns.flatMap(c=>c.tasks).find(t=>t.id===ut.id);
+  const oldProgress = oldTask ? calcProgress(oldTask) : 0;
+  const newProgress = calcProgress(ut);
+  updateBoard({...activeBoard,columns:activeBoard.columns.map(c=>({...c,tasks:c.tasks.map(t=>t.id===ut.id?ut:t)}))});
+  setActiveTask(ut);
+  // Trigger celebration when progress changes from less than 100 to 100
+  if (oldProgress < 100 && newProgress === 100) {
+    setCelebrateTaskId(ut.id);
+    setTimeout(() => setCelebrateTaskId(null), 3000);
+  }
+};
 
   const deleteTask=()=>{
     if(!activeTask)return;
@@ -881,14 +954,16 @@ function App(){
       h(ConfirmModal,{isOpen:confirm.isOpen,message:confirm.message,onConfirm:confirm.onConfirm,onCancel:closeConfirm,t}),
       showInfo&&h('div',{className:'info-overlay',onClick:()=>setShowInfo(false)},
         h('div',{className:'info-dialog',onClick:e=>e.stopPropagation()},
-          h('div',null,h('strong',null,'Creator:'),' Noble Adounkpe'),
+          h('div',null,h('strong',null,'Creator:'),' yepjust39'),
           h('div',{style:{marginTop:12}},h('strong',null,'About:'),' TaskFlow is the perfect combination of a Kanban board and a task list. You get to organize different tasks you\'d like carried out into subtasks, then into dedicated task lists.'),
           h('button',{onClick:()=>setShowInfo(false)},'Got it')
         )
       ),
       // Due notification popup (only if board active and not dismissed)
       activeBoard && !dismissedDue && dueTodayItems.length > 0 &&
-        h(DueNotification,{items:dueTodayItems, onDismiss:()=>setDismissedDue(true), lang})
+        h(DueNotification,{items:dueTodayItems, onDismiss:()=>setDismissedDue(true), lang}),
+      // 🎉 Celebration overlay
+      celebrateTaskId && h(CelebrationOverlay,{onDone:()=>setCelebrateTaskId(null)})
     )
   );
 }

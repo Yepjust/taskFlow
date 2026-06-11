@@ -428,11 +428,10 @@ function ThemePicker({currentThemeId,onSelect,onClose,t}){
   );
 }
 
-function Sidebar({boards,activeBoardId,onSelect,onCreate,onDelete,onReorder,isCollapsed,toggleCollapse,t,toggleLang,showInfo,onToggleInfo,theme}){
-  const[filter,setFilter]=useState('');
+function Sidebar({boards,activeBoardId,onSelect,onCreate,onDelete,onReorder,isCollapsed,toggleCollapse,t,toggleLang,showInfo,onToggleInfo,theme,searchTerm,onSearchChange}){
   const[dragBoardId,setDragBoardId]=useState(null);
   const[dragOverId,setDragOverId]=useState(null);
-  const filtered = filter.trim() === '' ? boards : boards.filter(b => matchesSearch(b, filter.trim()));
+  const filtered = searchTerm.trim() === '' ? boards : boards.filter(b => matchesSearch(b, searchTerm.trim()));
 
   const handleBoardDragStart=(e,id)=>{
     setDragBoardId(id);
@@ -461,7 +460,7 @@ function Sidebar({boards,activeBoardId,onSelect,onCreate,onDelete,onReorder,isCo
       h('button',{className:'btn-create',style:{backgroundColor:theme.primary},onClick:onCreate},h(Icon,{name:'plus',size:15}),t.createBoard),
       h('div',{className:'search-wrap'},
         h(Icon,{name:'search',size:15}),
-        h('input',{className:'search-input',placeholder:t.search,value:filter,onChange:e=>setFilter(e.target.value)})
+        h('input',{className:'search-input',placeholder:t.search,value:searchTerm,onChange:e=>onSearchChange(e.target.value)})
       )
     ),
     h('div',{className:'boards-list'},
@@ -794,6 +793,63 @@ function CelebrationOverlay({onDone}){
   );
 }
 
+function SearchResultsView({results,searchTerm,onTaskClick,theme,t}){
+  const highlight=(text,term)=>{
+    if(!text)return null;
+    const norm=removeDiacritics(text.toLowerCase());
+    const trm=removeDiacritics(term.toLowerCase());
+    const idx=norm.indexOf(trm);
+    if(idx===-1)return h('span',null,text);
+    return h('span',null,
+      text.slice(0,idx),
+      h('mark',{style:{background:'#fde68a',borderRadius:2,padding:'0 2px'}},text.slice(idx,idx+term.length)),
+      text.slice(idx+term.length)
+    );
+  };
+  if(results.length===0){
+    return h('div',{className:'welcome'},
+      h('div',{className:'welcome-icon'},h(Icon,{name:'search',size:36,style:{color:'#9ca3af'}})),
+      h('h2',null,'No results'),
+      h('p',null,`Nothing matched "${searchTerm}"`)
+    );
+  }
+  const grouped={};
+  results.forEach(r=>{
+    if(!grouped[r.boardId])grouped[r.boardId]={boardName:r.boardName,items:[]};
+    grouped[r.boardId].items.push(r);
+  });
+  return h('div',{style:{flex:1,overflowY:'auto',padding:'20px 24px'}},
+    h('div',{style:{fontSize:13,color:'#6b7280',marginBottom:16}},
+      `${results.length} result${results.length!==1?'s':''} for `,h('strong',null,`"${searchTerm}"`)
+    ),
+    Object.values(grouped).map(group=>
+      h('div',{key:group.boardName,style:{marginBottom:28}},
+        h('div',{style:{fontSize:11,fontWeight:700,color:'#6b7280',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:10,display:'flex',alignItems:'center',gap:6}},
+          h(Icon,{name:'layout',size:13}),group.boardName
+        ),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
+          group.items.map(({task,boardId})=>{
+            const prog=calcProgress(task);
+            return h('div',{key:task.id,className:'task-card',onClick:()=>onTaskClick(task,boardId)},
+              h('div',{className:'task-accent',style:{backgroundColor:theme.primary}}),
+              h('div',{className:'task-content'},
+                h('div',{className:'task-title'},highlight(task.title,searchTerm)),
+                task.description&&h('div',{style:{fontSize:12,color:'#6b7280',marginBottom:6}},
+                  highlight(task.description.slice(0,100)+(task.description.length>100?'…':''),searchTerm)
+                ),
+                h('div',{className:'task-meta'},
+                  h('div',{className:'task-subtask-count'},h(Icon,{name:prog===100?'check-circle':'circle',size:13,style:prog===100?{color:'#22c55e'}:{}}),h('span',null,(task.subtasks||[]).length)),
+                  h('span',{style:{fontFamily:'monospace',fontSize:11,color:theme.primary}},prog+'%')
+                )
+              )
+            );
+          })
+        )
+      )
+    )
+  );
+}
+
 function App(){
   const[boards,setBoards]=useState([]);
   const[activeBoardId,setActiveBoardId]=useState(null);
@@ -810,6 +866,7 @@ function App(){
   const[undoSnap,setUndoSnap]=useState(null);
   const[celebrateTaskId, setCelebrateTaskId] = useState(null);
   const[dismissedDue, setDismissedDue] = useState(false);
+  const[searchTerm, setSearchTerm] = useState('');
   const boardAreaRef = useRef(null);
 
   const t=T[lang];
@@ -842,6 +899,23 @@ function App(){
 
   const activeBoard=useMemo(()=>boards.find(b=>b.id===activeBoardId),[boards,activeBoardId]);
   const theme=useMemo(()=>activeBoard?(THEMES.find(t=>t.id===activeBoard.themeId)||THEMES[0]):THEMES[0],[activeBoard]);
+
+  const searchResults=useMemo(()=>{
+    if(!searchTerm.trim())return null;
+    const term=removeDiacritics(searchTerm.trim().toLowerCase());
+    const results=[];
+    boards.forEach(board=>{
+      board.columns.forEach(col=>{
+        col.tasks.forEach(task=>{
+          const inTitle=removeDiacritics(task.title.toLowerCase()).includes(term);
+          const inDesc=removeDiacritics((task.description||'').toLowerCase()).includes(term);
+          const inSubs=(task.subtasks||[]).some(s=>removeDiacritics(s.title.toLowerCase()).includes(term));
+          if(inTitle||inDesc||inSubs)results.push({task,colId:col.id,boardId:board.id,boardName:board.name});
+        });
+      });
+    });
+    return results;
+  },[searchTerm,boards]);
 
   const dueTodayItems = useMemo(() => {
     if (!activeBoard) return [];
@@ -922,22 +996,27 @@ function App(){
   };
 
   const updateTask=ut=>{
-    const oldTask = activeBoard?.columns.flatMap(c=>c.tasks).find(t=>t.id===ut.id);
-    const oldProgress = oldTask ? calcProgress(oldTask) : 0;
-    const newProgress = calcProgress(ut);
-    const updated = {...ut, updatedAt: now()};
-    updateBoard({...activeBoard,columns:activeBoard.columns.map(c=>({...c,tasks:c.tasks.map(t=>t.id===ut.id?updated:t)}))});
+    // find which board owns this task (works from search results too)
+    const ownerBoard=boards.find(b=>b.columns.some(c=>c.tasks.some(t=>t.id===ut.id)));
+    if(!ownerBoard)return;
+    const oldTask=ownerBoard.columns.flatMap(c=>c.tasks).find(t=>t.id===ut.id);
+    const oldProgress=oldTask?calcProgress(oldTask):0;
+    const newProgress=calcProgress(ut);
+    const updated={...ut,updatedAt:now()};
+    setBoards(prev=>prev.map(b=>b.id===ownerBoard.id?{...b,columns:b.columns.map(c=>({...c,tasks:c.tasks.map(t=>t.id===ut.id?updated:t)}))}:b));
     setActiveTask(updated);
-    if (oldProgress < 100 && newProgress === 100) {
+    if(oldProgress<100&&newProgress===100){
       setCelebrateTaskId(ut.id);
-      setTimeout(() => setCelebrateTaskId(null), 3000);
+      setTimeout(()=>setCelebrateTaskId(null),3000);
     }
   };
 
   const deleteTask=()=>{
     if(!activeTask)return;
+    const ownerBoard=boards.find(b=>b.columns.some(c=>c.tasks.some(t=>t.id===activeTask.id)));
+    if(!ownerBoard)return;
     askConfirm(t.confirmDelete,()=>{
-      updateBoard({...activeBoard,columns:activeBoard.columns.map(c=>({...c,tasks:c.tasks.filter(t=>t.id!==activeTask.id)}))});
+      setBoards(prev=>prev.map(b=>b.id===ownerBoard.id?{...b,columns:b.columns.map(c=>({...c,tasks:c.tasks.filter(t=>t.id!==activeTask.id)}))}:b));
       setActiveTask(null);
     });
   };
@@ -1010,15 +1089,17 @@ function App(){
   };
 
   return h('div',{className:'app',style:{backgroundColor:activeBoard?theme.bg:'#f9fafb'},onContextMenu:e=>e.preventDefault()},
-    h(Sidebar,{boards,activeBoardId,onSelect:setActiveBoardId,onCreate:createBoard,onDelete:deleteBoard,onReorder:reorderBoards,
+    h(Sidebar,{boards,activeBoardId,onSelect:(id)=>{setActiveBoardId(id);setSearchTerm('');},onCreate:createBoard,onDelete:deleteBoard,onReorder:reorderBoards,
       isCollapsed:collapsed,toggleCollapse:()=>setCollapsed(c=>!c),t,toggleLang:()=>setLang(l=>l==='en'?'fr':'en'),
-      showInfo,onToggleInfo:()=>setShowInfo(prev=>!prev),theme}),
+      showInfo,onToggleInfo:()=>setShowInfo(prev=>!prev),theme,searchTerm,onSearchChange:setSearchTerm}),
     h('div',{className:'main',onContextMenu:e=>e.preventDefault()},
       undoSnap&&h('div',{className:'undo-banner'},
         h('span',null,'Board imported. You can undo to revert.'),
         h('button',{className:'btn-undo',onClick:undoImport},'Undo')
       ),
-      activeBoard?h(Fragment,null,
+      searchResults!==null
+        ?h(SearchResultsView,{results:searchResults,searchTerm,onTaskClick:(task,boardId)=>{setActiveBoardId(boardId);setActiveTask(task);},theme,t})
+        :activeBoard?h(Fragment,null,
         h('div',{className:'topbar'},
           h('div',{className:'flex items-center gap8'},
             h('input',{className:'board-title-input',style:{color:theme.text},value:activeBoard.name,
@@ -1077,7 +1158,7 @@ function App(){
       h(ConfirmModal,{isOpen:confirm.isOpen,message:confirm.message,onConfirm:confirm.onConfirm,onCancel:closeConfirm,t}),
       showInfo&&h('div',{className:'info-overlay',onClick:()=>setShowInfo(false)},
         h('div',{className:'info-dialog',onClick:e=>e.stopPropagation()},
-          h('div',null,h('strong',null,'Creator:'),' yepjust39'),
+          h('div',null,h('strong',null,'Creator:'),' Noble Adounkpe'),
           h('div',{style:{marginTop:12}},h('strong',null,'About:'),' TaskFlow is the perfect combination of a Kanban board and a task list. You get to organize different tasks you\'d like carried out into subtasks, then into dedicated task lists.'),
           h('button',{onClick:()=>setShowInfo(false)},'Got it')
         )
